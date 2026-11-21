@@ -68,7 +68,6 @@ def test_full_flow(client, manager):
     r = client.put(f"/api/processes/{pid}/criteria", headers=manager, json={"competency_ids": ["K01", "K02"]})
     assert r.json()["criteria"] == ["K01", "K02"]
 
-    # wskaźnik spoza kryteriów
     assert (
         client.put(f"/api/processes/{pid}/ratings/K05-W1", headers=manager, json={"level": 3}).status_code
         == 409
@@ -91,12 +90,10 @@ def test_full_flow(client, manager):
     assert (k02["rated"], k02["total"], k02["no_basis"], k02["suggested_level"]) == (3, 4, 1, 4)
     assert summary["K01"]["suggested_level"] is None
 
-    # zgodnie z sugestią – uzasadnienie niewymagane
     assert (
         client.put(f"/api/processes/{pid}/decisions/K02", headers=manager, json={"level": 4}).status_code
         == 200
     )
-    # odejście od sugestii bez uzasadnienia
     r = client.put(
         f"/api/processes/{pid}/decisions/K02", headers=manager, json={"level": 3, "justification": " "}
     )
@@ -114,7 +111,6 @@ def test_full_flow(client, manager):
     assert r.headers["content-type"] == "application/pdf"
     assert r.content.startswith(b"%PDF")
 
-    # usunięcie kompetencji z kryteriów kasuje jej oceny
     client.put(f"/api/processes/{pid}/criteria", headers=manager, json={"competency_ids": ["K01"]})
     detail = client.get(f"/api/processes/{pid}", headers=manager).json()
     assert detail["ratings"] == [] and detail["decisions"] == []
@@ -150,7 +146,6 @@ def test_hr_endpoints(client, hr, manager):
     assert r.status_code == 201 and r.json()["created"] == 1
     again = {p["id"]: p for p in client.get("/api/hr/processes", headers=hr).json()}
     assert again[allp[0]["id"]]["last_reminder_at"] is not None
-    # HR nie edytuje ocen
     assert (
         client.put(
             f"/api/processes/{allp[0]['id']}/criteria", headers=hr, json={"competency_ids": []}

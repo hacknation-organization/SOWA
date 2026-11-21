@@ -1,8 +1,3 @@
-"""Dane demonstracyjne: fikcyjni użytkownicy, pracownicy i procesy w różnych etapach.
-
-Wszyscy użytkownicy demo mają hasło DEMO_PASSWORD. Dane osobowe są fikcyjne.
-"""
-
 from datetime import date, timedelta
 
 from sqlmodel import Session, select
@@ -43,7 +38,6 @@ EMPLOYEES = [
     ("Michał", "Dąbek", "Główny specjalista ds. budżetu", "Biuro Administracyjne", "przelozony2"),
 ]
 
-# wzorzec poziomów do deterministycznego wypełnienia ocen demo (None = brak podstaw)
 PATTERN = [3, 4, 3, None, 4, 3, 5, 2, 3, 4]
 
 
@@ -108,7 +102,6 @@ def _decide(session: Session, process: Process, competency_ids: list[str], bump_
 
 
 def seed_demo(session: Session) -> bool:
-    """Wypełnia pustą bazę danymi demo. Zwraca False, jeśli dane już istnieją."""
     if session.exec(select(User)).first() is not None:
         return False
 
@@ -123,18 +116,17 @@ def seed_demo(session: Session) -> bool:
 
     employees = []
     for first, last, position, unit, manager in EMPLOYEES:
-        e = Employee(
+        employee = Employee(
             first_name=first, last_name=last, position=position, unit=unit, manager_id=users[manager].id
         )
-        session.add(e)
-        employees.append(e)
+        session.add(employee)
+        employees.append(employee)
     session.flush()
 
     today = date.today()
     period = {"period_start": date(today.year - 1, 1, 1), "period_end": date(today.year - 1, 12, 31)}
     mgr = users["przelozony"].id
 
-    # 1) Ocena okresowa B – dopiero założona
     p1 = Process(
         employee_id=employees[0].id,
         manager_id=mgr,
@@ -143,7 +135,6 @@ def seed_demo(session: Session) -> bool:
         deadline=today + timedelta(days=30),
         **period,
     )
-    # 2) Pierwsza ocena – w trakcie oceny wskaźników
     p2 = Process(
         employee_id=employees[2].id,
         manager_id=mgr,
@@ -156,7 +147,6 @@ def seed_demo(session: Session) -> bool:
         job_description="Obsługa zgłoszeń obywateli w kanale elektronicznym, prowadzenie rejestru spraw, "
         "udzielanie informacji o e-usługach.",
     )
-    # 3) Ocena okresowa C (kierownicza) – podsumowanie, termin minął
     p3 = Process(
         employee_id=employees[3].id,
         manager_id=mgr,
@@ -168,7 +158,6 @@ def seed_demo(session: Session) -> bool:
         "cyfryzacji usług publicznych.",
         **period,
     )
-    # 4) Ocena okresowa B – zakończona (inny przełożony)
     p4 = Process(
         employee_id=employees[5].id,
         manager_id=users["przelozony2"].id,
@@ -183,8 +172,7 @@ def seed_demo(session: Session) -> bool:
         job_description="Prowadzenie sekretariatu, obieg dokumentów w EZD.",
         **period,
     )
-    for p in (p1, p2, p3, p4):
-        session.add(p)
+    session.add_all([p1, p2, p3, p4])
     session.flush()
 
     c2 = ["K01", "K02", "K10"]

@@ -41,8 +41,6 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def require_roles(*roles: str) -> Callable[[User], User]:
-    """Zależność FastAPI: dopuszcza tylko użytkowników o podanych rolach."""
-
     def checker(user: CurrentUser) -> User:
         if user.role not in roles:
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"Wymagana rola: {', '.join(roles)}")
@@ -51,20 +49,22 @@ def require_roles(*roles: str) -> Callable[[User], User]:
     return checker
 
 
-def get_process_for_read(session: Session, process_id: int, user: User) -> Process:
+def _get_process_or_404(session: Session, process_id: int) -> Process:
     process = session.get(Process, process_id)
     if process is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proces nie istnieje")
+    return process
+
+
+def get_process_for_read(session: Session, process_id: int, user: User) -> Process:
+    process = _get_process_or_404(session, process_id)
     if user.role in ("hr", "admin") or process.manager_id == user.id:
         return process
     raise HTTPException(status.HTTP_403_FORBIDDEN, "Brak dostępu do procesu")
 
 
 def get_process_for_write(session: Session, process_id: int, user: User) -> Process:
-    """Edytować ocenę może wyłącznie przełożony prowadzący proces (lub admin)."""
-    process = session.get(Process, process_id)
-    if process is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proces nie istnieje")
+    process = _get_process_or_404(session, process_id)
     if user.role == "admin" or process.manager_id == user.id:
         return process
     raise HTTPException(status.HTTP_403_FORBIDDEN, "Tylko przełożony prowadzący ocenę może ją edytować")

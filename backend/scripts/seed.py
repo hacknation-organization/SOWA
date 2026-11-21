@@ -1,5 +1,3 @@
-"""Tworzy tabele i ładuje dane demo.  Użycie: uv run python scripts/seed.py [--reset]"""
-
 import sys
 from pathlib import Path
 

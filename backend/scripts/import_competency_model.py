@@ -1,12 +1,3 @@
-"""Import modelu kompetencji z Model_kompetencji.xlsx do backend/data/competency_model.json.
-
-Użycie:
-    uv run python scripts/import_competency_model.py [ścieżka/do/Model_kompetencji.xlsx]
-
-Domyślnie szuka pliku w docs/HackNation/ w katalogu głównym repozytorium
-(także w repozytorium nadrzędnym, gdy backend jest uruchamiany z worktree).
-"""
-
 from __future__ import annotations
 
 import json
@@ -54,7 +45,6 @@ def parse(xlsx: Path) -> dict:
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     index_ws = wb.worksheets[0]
 
-    # Spis kompetencji: wiersze "Lp. | Kompetencja | Liczba wskaźników"
     index: list[tuple[int, str, int]] = []
     for row in index_ws.iter_rows(values_only=True):
         if row and row[0] is not None and str(row[0]).strip().isdigit() and row[1]:
@@ -69,9 +59,9 @@ def parse(xlsx: Path) -> dict:
         indicators = []
         for row in ws.iter_rows(min_row=2, values_only=True):
             if not row or not clean(row[0]) or not any(row[1:6]):
-                continue  # tytuł arkusza / puste wiersze
+                continue
             if clean(row[0]).lower().startswith("wskaźnik behawioralny"):
-                continue  # nagłówek tabeli
+                continue
             descriptions = [clean(c) for c in row[1:6]]
             if len(descriptions) != 5 or not all(descriptions):
                 raise ValueError(

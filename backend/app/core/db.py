@@ -17,14 +17,13 @@ def get_engine() -> Engine:
     return _engine
 
 
-def set_engine(engine: Engine) -> None:
-    """Podmiana silnika (testy)."""
+def set_engine(engine: Engine | None) -> None:
     global _engine
     _engine = engine
 
 
 def init_db() -> None:
-    import app.models  # noqa: F401  – rejestracja tabel
+    import app.models  # noqa: F401
 
     SQLModel.metadata.create_all(get_engine())
 

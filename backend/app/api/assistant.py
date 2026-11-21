@@ -20,18 +20,13 @@ NOT_CONNECTED = AskResponse(
 def _load_ask():
     try:
         return importlib.import_module("app.rag.service").ask
-    except Exception as exc:  # noqa: BLE001 – brak modułu RAG lub błąd jego importu
+    except Exception as exc:  # noqa: BLE001
         log.warning("Moduł RAG niedostępny: %s", exc)
         return None
 
 
 @router.post("/ask", response_model=AskResponse)
 async def ask(body: AskRequest, session: SessionDep, user: CurrentUser) -> AskResponse:
-    """Pytanie do asystenta RAG (tryb formalny lub przygotowanie do rozmowy oceniającej).
-
-    Asystent tylko doradza – nie ustala poziomów oceny. W trybie „interview” przekazywane są
-    zanonimizowane wyniki procesu (bez imienia i nazwiska pracownika).
-    """
     context: dict | None = None
     if body.process_id is not None:
         process = get_process_for_read(session, body.process_id, user)

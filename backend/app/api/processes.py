@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlmodel import delete, select
+from sqlmodel import Session, delete, select
 
 from app.api.deps import CurrentUser, SessionDep, get_process_for_read, get_process_for_write
 from app.domain.competency_model import get_competency_model
@@ -25,18 +25,17 @@ from app.services import processes as svc
 router = APIRouter(prefix="/processes", tags=["procesy oceny"])
 
 
-def _touch(session, process: Process) -> None:
+def _touch(session: Session, process: Process) -> None:
     process.updated_at = utcnow()
     session.add(process)
 
 
 @router.get("", response_model=list[ProcessListItem])
 def list_processes(session: SessionDep, user: CurrentUser) -> list[ProcessListItem]:
-    """Procesy zalogowanego przełożonego (HR/admin widzą wszystkie)."""
     query = select(Process).order_by(Process.updated_at.desc())
     if user.role == "przelozony":
         query = query.where(Process.manager_id == user.id)
-    return [svc.list_item(session, p) for p in session.exec(query).all()]
+    return [svc.list_item(session, process) for process in session.exec(query).all()]
 
 
 @router.post("", response_model=ProcessDetail, status_code=status.HTTP_201_CREATED)
@@ -74,7 +73,6 @@ def get_process(process_id: int, session: SessionDep, user: CurrentUser) -> Proc
 def update_process(
     process_id: int, body: ProcessUpdate, session: SessionDep, user: CurrentUser
 ) -> ProcessDetail:
-    """Zmiana etapu, opisu stanowiska (OSP), danych rozmowy, planu rozwoju lub statusu."""
     process = get_process_for_write(session, process_id, user)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(process, key, value)
@@ -97,13 +95,12 @@ def set_criteria(
             status.HTTP_422_UNPROCESSABLE_CONTENT, f"Nieznane kompetencje: {', '.join(unknown)}"
         )
     session.exec(delete(ProcessCompetency).where(ProcessCompetency.process_id == process.id))
-    # oceny i decyzje dla kompetencji usuniętych z kryteriów przestają obowiązywać
     session.exec(delete(Rating).where(Rating.process_id == process.id, Rating.competency_id.not_in(ids)))
     session.exec(
         delete(Decision).where(Decision.process_id == process.id, Decision.competency_id.not_in(ids))
     )
-    for pos, cid in enumerate(ids):
-        session.add(ProcessCompetency(process_id=process.id, competency_id=cid, position=pos))
+    for position, cid in enumerate(ids):
+        session.add(ProcessCompetency(process_id=process.id, competency_id=cid, position=position))
     _touch(session, process)
     session.commit()
     session.refresh(process)
@@ -114,7 +111,6 @@ def set_criteria(
 def set_rating(
     process_id: int, indicator_id: str, body: RatingUpdate, session: SessionDep, user: CurrentUser
 ) -> RatingOut:
-    """Ocena wskaźnika: level 1–5 albo null = „brak podstaw do oceny”."""
     process = get_process_for_write(session, process_id, user)
     found = get_competency_model().indicator(indicator_id)
     if found is None:
@@ -133,9 +129,8 @@ def set_rating(
     session.add(rating)
     _touch(session, process)
     session.commit()
-    return RatingOut(
-        indicator_id=indicator_id, competency_id=comp["id"], level=rating.level, example=rating.example
-    )
+    session.refresh(rating)
+    return RatingOut.model_validate(rating)
 
 
 @router.delete("/{process_id}/ratings/{indicator_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -149,7 +144,6 @@ def clear_rating(process_id: int, indicator_id: str, session: SessionDep, user: 
 
 @router.get("/{process_id}/summary", response_model=list[SummaryItem])
 def get_summary(process_id: int, session: SessionDep, user: CurrentUser) -> list[SummaryItem]:
-    """Sugerowany poziom (mediana, deterministycznie) + decyzja przełożonego dla każdej kompetencji."""
     return svc.summary(session, get_process_for_read(session, process_id, user))
 
 
@@ -157,14 +151,17 @@ def get_summary(process_id: int, session: SessionDep, user: CurrentUser) -> list
 def set_decision(
     process_id: int, competency_id: str, body: DecisionUpdate, session: SessionDep, user: CurrentUser
 ) -> DecisionOut:
-    """Ostateczny poziom ustala przełożony; odejście od sugestii wymaga uzasadnienia."""
     process = get_process_for_write(session, process_id, user)
     comp = get_competency_model().competency(competency_id)
     if comp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Nieznana kompetencja")
     if competency_id not in svc.criteria_ids(session, process.id):
         raise HTTPException(status.HTTP_409_CONFLICT, "Kompetencja nie jest wybrana jako kryterium")
-    levels = [r.level for r in svc.ratings_for(session, process.id) if r.competency_id == competency_id]
+    levels = [
+        rating.level
+        for rating in svc.ratings_for(session, process.id)
+        if rating.competency_id == competency_id
+    ]
     suggested = suggest_level(levels, total=len(comp["indicators"])).suggested_level
     justification = (body.justification or "").strip() or None
     if body.level != suggested and not justification:
@@ -182,12 +179,8 @@ def set_decision(
     session.add(decision)
     _touch(session, process)
     session.commit()
-    return DecisionOut(
-        competency_id=competency_id,
-        level=decision.level,
-        suggested_level=suggested,
-        justification=justification,
-    )
+    session.refresh(decision)
+    return DecisionOut.model_validate(decision)
 
 
 @router.get(

@@ -1,8 +1,9 @@
 import logging
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from app.api.deps import SessionDep, require_roles
 from app.models import Employee, Process, Reminder, User
@@ -14,11 +15,11 @@ router = APIRouter(prefix="/hr", tags=["HR"])
 HrUser = Annotated[User, Depends(require_roles("hr", "admin"))]
 
 
-def _last_reminder(session, process_id: int):
-    r = session.exec(
+def _last_reminder_at(session: Session, process_id: int) -> datetime | None:
+    reminder = session.exec(
         select(Reminder).where(Reminder.process_id == process_id).order_by(Reminder.created_at.desc())
     ).first()
-    return r.created_at if r else None
+    return reminder.created_at if reminder else None
 
 
 @router.get("/processes", response_model=list[HrProcessItem])
@@ -31,7 +32,6 @@ def hr_processes(
     unit: str | None = None,
     type_: Annotated[str | None, Query(alias="type", description="first | periodic")] = None,
 ) -> list[HrProcessItem]:
-    """Monitoring procesów ocen: status, etap, termin. Bez treści ocen (minimalizacja danych)."""
     query = (
         select(Process, Employee, User)
         .join(Employee, Process.employee_id == Employee.id)
@@ -62,7 +62,7 @@ def hr_processes(
                 deadline=process.deadline,
                 overdue=overdue,
                 progress=svc.progress(session, process.id),
-                last_reminder_at=_last_reminder(session, process.id),
+                last_reminder_at=_last_reminder_at(session, process.id),
             )
         )
     return items
@@ -70,7 +70,6 @@ def hr_processes(
 
 @router.post("/reminders", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 def send_reminders(body: ReminderRequest, session: SessionDep, user: HrUser) -> ReminderResponse:
-    """Przypomnienia dla przełożonych. Prototyp: zapis w tabeli + log (bez wysyłki e-mail)."""
     created = []
     for pid in dict.fromkeys(body.process_ids):
         process = session.get(Process, pid)
@@ -85,9 +84,11 @@ def send_reminders(body: ReminderRequest, session: SessionDep, user: HrUser) -> 
         created.append(reminder)
         log.info("Przypomnienie dla użytkownika %s, proces %s: %s", process.manager_id, pid, message)
     session.commit()
-    for r in created:
-        session.refresh(r)
-    return ReminderResponse(created=len(created), reminders=[ReminderOut.model_validate(r) for r in created])
+    for reminder in created:
+        session.refresh(reminder)
+    return ReminderResponse(
+        created=len(created), reminders=[ReminderOut.model_validate(reminder) for reminder in created]
+    )
 
 
 @router.get("/units", response_model=list[str])

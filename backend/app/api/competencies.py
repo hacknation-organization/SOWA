@@ -8,7 +8,6 @@ router = APIRouter(prefix="/competencies", tags=["model kompetencji"])
 
 @router.get("", response_model=list[CompetencyOut])
 def list_competencies() -> list[dict]:
-    """Pełny model kompetencji: 14 kompetencji, 49 wskaźników, 5 poziomów z opisami zachowań."""
     return get_competency_model().competencies
 
 
