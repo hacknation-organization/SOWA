@@ -73,7 +73,7 @@ Uwagi do korpusu:
    - fuzja **RRF** (k=60), top-k=6;
    - fragmenty z drugiej ścieżki (pierwsza vs okresowa, ustalonej z `context.process` lub z treści pytania) dostają karę ×0,55, więc nie są wycinane, tylko spadają w rankingu.
 4. **Próg odmowy.** Liczone jest *pokrycie zapytania*: jaką część ważonej IDF masy terminów pytania zawiera najlepszy fragment. Terminy nieobecne w korpusie mają maksymalne IDF. Gdy pokrycie < `RAG_MIN_COVERAGE` (0,55, wartość dobrana na `qa_eval.jsonl`, patrz EVAL.md), a kosinus nie ratuje sytuacji, odpowiedź brzmi **„W bazie wiedzy nie znalazłem informacji na ten temat.”**, bez wywołania LLM.
-5. **Generacja** (Gemini `gemini-2.5-flash`, a przy błędzie lub limicie Groq `llama-3.3-70b-versatile`):
+5. **Generacja** (Gemini `gemini-3.5-flash`, a przy błędzie lub limicie Groq `llama-3.3-70b-versatile`):
    - prompt wymusza odpowiedź wyłącznie z fragmentów, markery `[n]` i JSON `{status, answer, used_markers}`; Gemini dostaje `responseSchema`;
    - status `no_info` daje komunikat o braku informacji, a `refuse_decision` daje odmowę decyzji.
 6. **Walidacja po stronie serwera** (`service.validate_citations`):
@@ -89,7 +89,7 @@ Uwagi do korpusu:
 |---|---|---|
 | `GEMINI_API_KEY` (lub `GOOGLE_API_KEY`) | – | generacja i embeddingi (free tier AI Studio) |
 | `GROQ_API_KEY` | – | zapasowy LLM |
-| `RAG_GEMINI_MODEL` | `gemini-2.5-flash` | model generacji |
+| `RAG_GEMINI_MODEL` | `gemini-3.5-flash` | model generacji |
 | `RAG_GEMINI_EMBED_MODEL` | `gemini-embedding-001` | model embeddingów (po zmianie przebuduj indeks) |
 | `RAG_EMBED_DIM` | `768` | wymiar embeddingów |
 | `RAG_GROQ_MODEL` | `llama-3.3-70b-versatile` | model Groq |
