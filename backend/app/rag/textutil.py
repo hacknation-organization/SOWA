@@ -82,5 +82,15 @@ def dehyphenate(text: str) -> str:
 
 
 def split_sentences(text: str) -> list[str]:
-    parts = re.split(r"(?<=[.;:!?])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ0-9•\-−§(])", text)
-    return [p.strip() for p in parts if p.strip()]
+    parts = [p.strip() for p in re.split(r"(?<=[.;:!?])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ0-9•\-−§(])", text) if p.strip()]
+    out: list[str] = []
+    carry = ""
+    for p in parts:
+        if re.fullmatch(r"(§\s*)?\d+[a-z]?[.)]", p):  # sam numer ustępu/punktu – należy do następnego zdania
+            carry += p + " "
+            continue
+        out.append(carry + p)
+        carry = ""
+    if carry:
+        out.append(carry.strip())
+    return out

@@ -20,7 +20,7 @@ DECISION_REFUSAL = (
 # Prośby o rozstrzygnięcie oceny konkretnej osoby. Dopasowanie na tekście bez diakrytyków.
 _ACT = r"(dac|dam|wystawic|wystawie|przyznac|przyznam|postawic|postawie|wpisac|wpisze|zaznaczyc|zaznacze|wybrac|wybiore)"
 _DECISION_PATTERNS = [
-    r"\b(jak\w*|ktor\w*|co)\b.{0,40}\b(ocen\w*|poziom\w*|punkt\w*)\b.{0,40}\b" + _ACT + r"\b",
+    r"\b(jak\w*|ktor\w*|co|ile)\b.{0,40}\b(ocen\w*|poziom\w*|punkt\w*)\b.{0,40}\b" + _ACT + r"\b",
     r"\b" + _ACT + r"\b.{0,40}\b(mu|jej|pracownik\w*|podwladn\w*|kandydat\w*|temu|tej osobie)\b",
     r"\b(przyznaj|wystaw|postaw|zdecyduj|rozstrzygnij)\b.{0,50}\b(pracownik\w*|podwladn\w*|ocen\w*|poziom\w*|jego|ja|go)\b",
     r"\bocen\b (go|ja|tego|te|moj\w*|pracownik\w*|podwladn\w*)\b",
