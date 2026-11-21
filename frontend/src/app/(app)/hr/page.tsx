@@ -27,8 +27,12 @@ import {
 import { useApi } from "@/lib/use-api";
 import { daysUntil, formatDate } from "@/lib/utils";
 
+const EMPTY_FILTERS: HrProcessFilters = { status: "", unit: "", type: "" };
+const DEADLINE_SOON_DAYS = 14;
+const TONE_CLASS = { danger: "text-destructive", warning: "text-warning" } as const;
+
 export default function HrPage() {
-  const [filters, setFilters] = useState<HrProcessFilters>({ status: "", unit: "", type: "" });
+  const [filters, setFilters] = useState<HrProcessFilters>(EMPTY_FILTERS);
   const { data, error, loading, reload } = useApi(
     () => api.getHrProcesses(filters),
     [filters.status, filters.unit, filters.type],
@@ -53,7 +57,7 @@ export default function HrPage() {
     overdue: processes.filter((p) => p.status === "overdue").length,
     soon: open.filter((p) => {
       const d = daysUntil(p.deadline);
-      return d != null && d >= 0 && d <= 14;
+      return d != null && d >= 0 && d <= DEADLINE_SOON_DAYS;
     }).length,
     completed: processes.filter((p) => p.status === "completed").length,
   };
@@ -69,8 +73,8 @@ export default function HrPage() {
     void reload();
   }
 
-  const set = (k: keyof HrProcessFilters) => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    setFilters((f) => ({ ...f, [k]: e.target.value }));
+  const updateFilter = (key: keyof HrProcessFilters) => (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setFilters((f) => ({ ...f, [key]: e.target.value }));
 
   return (
     <>
@@ -81,7 +85,7 @@ export default function HrPage() {
       <div className="flex flex-col gap-6 p-8">
         <div className="grid grid-cols-3 gap-4">
           <Stat label="Po terminie" value={counts.overdue} tone="danger" />
-          <Stat label="Termin w ciągu 14 dni" value={counts.soon} tone="warning" />
+          <Stat label={`Termin w ciągu ${DEADLINE_SOON_DAYS} dni`} value={counts.soon} tone="warning" />
           <Stat label="Zakończone" value={counts.completed} />
         </div>
 
@@ -92,7 +96,7 @@ export default function HrPage() {
         >
           <div className="flex flex-col gap-2">
             <Label htmlFor="f-status">Status</Label>
-            <Select id="f-status" value={filters.status} onChange={set("status")}>
+            <Select id="f-status" value={filters.status} onChange={updateFilter("status")}>
               <option value="">Wszystkie</option>
               {(Object.keys(STATUS_LABELS) as ProcessStatus[]).map((s) => (
                 <option key={s} value={s}>
@@ -103,7 +107,7 @@ export default function HrPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="f-unit">Komórka organizacyjna</Label>
-            <Select id="f-unit" value={filters.unit} onChange={set("unit")}>
+            <Select id="f-unit" value={filters.unit} onChange={updateFilter("unit")}>
               <option value="">Wszystkie</option>
               {units.map((u) => (
                 <option key={u} value={u}>
@@ -114,7 +118,7 @@ export default function HrPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="f-type">Rodzaj oceny</Label>
-            <Select id="f-type" value={filters.type} onChange={set("type")}>
+            <Select id="f-type" value={filters.type} onChange={updateFilter("type")}>
               <option value="">Wszystkie</option>
               {(Object.keys(TYPE_LABELS) as ProcessType[]).map((t) => (
                 <option key={t} value={t}>
@@ -126,7 +130,7 @@ export default function HrPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setFilters({ status: "", unit: "", type: "" })}
+            onClick={() => setFilters(EMPTY_FILTERS)}
           >
             Wyczyść filtry
           </Button>
@@ -237,7 +241,7 @@ export default function HrPage() {
 }
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "danger" | "warning" }) {
-  const color = tone === "danger" ? "text-destructive" : tone === "warning" ? "text-warning" : "";
+  const color = tone ? TONE_CLASS[tone] : "";
   return (
     <Card>
       <CardContent className="pt-4">

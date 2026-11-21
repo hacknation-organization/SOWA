@@ -16,7 +16,10 @@ import { Stepper } from "@/components/wizard/stepper";
 import { SummaryStep } from "@/components/wizard/summary-step";
 import type { StepProps } from "@/components/wizard/types";
 import { api, STAGES, TYPE_LABELS, type ProcessStage } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
+
+const WIDE_SCREEN_MIN_WIDTH = 1440;
 
 const STEP_COMPONENTS: Record<ProcessStage, React.ComponentType<StepProps>> = {
   job_description: JobDescriptionStep,
@@ -43,9 +46,8 @@ export default function WizardPage() {
   const [step, setStep] = useState<ProcessStage | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  // Panel asystenta domyślnie otwarty tylko na szerokich ekranach.
   useEffect(() => {
-    if (window.innerWidth >= 1440) setAssistantOpen(true);
+    if (window.innerWidth >= WIDE_SCREEN_MIN_WIDTH) setAssistantOpen(true);
   }, []);
 
   if (loading && !data) return <p className="p-8 text-muted-foreground">Ładowanie oceny…</p>;
@@ -53,7 +55,7 @@ export default function WizardPage() {
     return (
       <div className="p-8">
         <Alert variant="danger">{error ?? "Nie znaleziono oceny"}</Alert>
-        <Link href="/" className="mt-4 inline-block text-primary underline">
+        <Link href={ROUTES.dashboard} className="mt-4 inline-block text-primary underline">
           Wróć do pulpitu
         </Link>
       </div>
@@ -77,7 +79,7 @@ export default function WizardPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">
-                <Link href="/" className="underline underline-offset-2 hover:no-underline">
+                <Link href={ROUTES.dashboard} className="underline underline-offset-2 hover:no-underline">
                   Pulpit
                 </Link>{" "}
                 / {TYPE_LABELS[process.type]}
@@ -98,7 +100,7 @@ export default function WizardPage() {
                 size="sm"
                 aria-expanded={assistantOpen}
                 aria-controls="assistant-panel"
-                onClick={() => setAssistantOpen((o) => !o)}
+                onClick={() => setAssistantOpen((open) => !open)}
               >
                 {assistantOpen ? "Ukryj asystenta" : "Pokaż asystenta"}
               </Button>

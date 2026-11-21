@@ -176,7 +176,6 @@ function Answer({ id, res, compact }: { id: string; res: AskResponse; compact: b
   const [open, setOpen] = useState<string | null>(null);
   const note = CONFIDENCE_NOTE[res.confidence];
 
-  // Zamiana znaczników [1] w tekście na odnośniki do cytatów.
   const parts = res.answer.split(/(\[\d+\])/g);
   const anchor = (marker: string) => `${id}-cit-${marker.replace(/\D/g, "")}`;
 

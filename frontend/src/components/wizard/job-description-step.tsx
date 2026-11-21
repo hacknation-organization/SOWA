@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label, Select, Textarea } from "@/components/ui/form";
 import { api, type FormType } from "@/lib/api";
 import { FORM_DESCRIPTIONS } from "@/lib/domain";
-import { OSP_SAMPLES } from "@/lib/osp-samples";
+import { JOB_DESCRIPTION_SAMPLES } from "@/lib/job-description-samples";
 import type { StepProps } from "./types";
 
 export function JobDescriptionStep({ process, onProcess, goTo }: StepProps) {
@@ -18,12 +18,12 @@ export function JobDescriptionStep({ process, onProcess, goTo }: StepProps) {
   const periodic = process.type === "periodic";
 
   const managesPeople =
-    OSP_SAMPLES.find((s) => s.id === sampleId)?.manages_people ??
+    JOB_DESCRIPTION_SAMPLES.find((s) => s.id === sampleId)?.manages_people ??
     /kieruje|koordynuje pracę|podległ/i.test(text.replace(/brak podległych/gi, ""));
 
   function pickSample(id: string) {
     setSampleId(id);
-    const s = OSP_SAMPLES.find((x) => x.id === id);
+    const s = JOB_DESCRIPTION_SAMPLES.find((x) => x.id === id);
     if (s) {
       setText(s.text);
       if (periodic && !form) setForm(s.manages_people ? "B" : "C");
@@ -60,10 +60,10 @@ export function JobDescriptionStep({ process, onProcess, goTo }: StepProps) {
       </p>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="osp-sample">Przykładowy opis stanowiska</Label>
-        <Select id="osp-sample" value={sampleId} onChange={(e) => pickSample(e.target.value)}>
+        <Label htmlFor="job-description-sample">Przykładowy opis stanowiska</Label>
+        <Select id="job-description-sample" value={sampleId} onChange={(e) => pickSample(e.target.value)}>
           <option value="">Nie wybrano – wkleję własny opis</option>
-          {OSP_SAMPLES.map((s) => (
+          {JOB_DESCRIPTION_SAMPLES.map((s) => (
             <option key={s.id} value={s.id}>
               {s.title}
             </option>
@@ -72,9 +72,9 @@ export function JobDescriptionStep({ process, onProcess, goTo }: StepProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="osp-text">Treść opisu stanowiska</Label>
+        <Label htmlFor="job-description-text">Treść opisu stanowiska</Label>
         <Textarea
-          id="osp-text"
+          id="job-description-text"
           rows={12}
           value={text}
           onChange={(e) => setText(e.target.value)}

@@ -1,10 +1,4 @@
-/*
- * Tokeny wizualne Kompasu kompetencji.
- * Jedyne miejsce z wartościami kolorów, promieni, krojów i odstępów.
- * Podmiana kierunku wizualnego = edycja tego pliku (+ src/app/fonts.ts dla krojów).
- */
 :root {
-  /* Kolory bazowe */
   --kk-color-bg: #f7f7f5;
   --kk-color-surface: #ffffff;
   --kk-color-surface-muted: #efefec;
@@ -13,12 +7,10 @@
   --kk-color-border: #d6d6d1;
   --kk-color-border-strong: #9a9a94;
 
-  /* Kolor akcji */
   --kk-color-primary: #1f3a5f;
   --kk-color-primary-fg: #ffffff;
   --kk-color-primary-soft: #e3e9f1;
 
-  /* Stany */
   --kk-color-danger: #a12a1f;
   --kk-color-danger-soft: #f8e5e2;
   --kk-color-warning: #8a5a00;
@@ -26,16 +18,13 @@
   --kk-color-success: #2d6a3e;
   --kk-color-success-soft: #e2f0e5;
 
-  /* Focus (widoczny, wysoki kontrast) */
   --kk-color-focus: #0b5fd9;
   --kk-focus-width: 3px;
 
-  /* Promienie */
   --kk-radius-sm: 2px;
   --kk-radius-md: 4px;
   --kk-radius-lg: 6px;
 
-  /* Odstępy */
   --kk-space-1: 0.25rem;
   --kk-space-2: 0.5rem;
   --kk-space-3: 0.75rem;
@@ -43,11 +32,9 @@
   --kk-space-6: 1.5rem;
   --kk-space-8: 2rem;
 
-  /* Kroje – zmienne ustawia next/font w src/app/fonts.ts */
   --kk-font-sans: var(--font-kk-sans), system-ui, sans-serif;
   --kk-font-mono: var(--font-kk-mono), ui-monospace, monospace;
 
-  /* Szerokości */
   --kk-sidebar-width: 15rem;
   --kk-assistant-width: 24rem;
 }

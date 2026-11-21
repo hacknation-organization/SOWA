@@ -14,8 +14,10 @@ export function formatDate(iso?: string | null): string {
   });
 }
 
+export const DAY_MS = 86_400_000;
+
 export function daysUntil(iso?: string | null): number | null {
   if (!iso) return null;
   const ms = new Date(iso).getTime() - Date.now();
-  return Math.ceil(ms / 86_400_000);
+  return Math.ceil(ms / DAY_MS);
 }

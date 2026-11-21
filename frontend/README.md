@@ -40,7 +40,7 @@ Typy w `src/lib/api/types.ts` odpowiadają kontraktowi (`/auth/login`, `/compete
 
 - Logowanie z wyborem roli demo; nawigacja i dostęp zależne od roli (HR/admin → monitoring).
 - Pulpit przełożonego: oceny w toku i zakończone, start pierwszej lub okresowej oceny.
-- Kreator oceny (`/oceny/[id]`), 6 kroków:
+- Kreator oceny (`/assessments/[id]`), 6 kroków:
   1. Opis stanowiska – wybór przykładowego OSP lub wklejenie treści, wybór arkusza B/C (z sugestią na podstawie OSP).
   2. Kryteria – kryteria obowiązkowe arkusza zablokowane, maks. 3 dodatkowe, sugestie z OSP.
   3. Ocena zachowań – jeden wskaźnik naraz, 5 opisów zachowań z modelu, „brak podstaw do oceny”, przykład; skróty `1`–`5`, `0`, `N`/`P`.
@@ -49,7 +49,7 @@ Typy w `src/lib/api/types.ts` odpowiadają kontraktowi (`/auth/login`, `/compete
   6. Dokument – tabela ocen i pobranie PDF.
 - Panel asystenta (tryb `formal`) z boku kreatora; cytaty jako odnośniki do rozwijanego fragmentu źródła; wyraźny komunikat przy `confidence: "none"`.
 - `/hr` – tabela procesów, filtry (status, komórka, rodzaj), terminy, zaznaczanie i wysyłka przypomnień.
-- `/asystent` – pełnoekranowy czat.
+- `/assistant` – pełnoekranowy czat.
 - Poniżej 1024 px szerokości – komunikat, że aplikacja jest przeznaczona na komputer.
 
 ## Zaślepki (tryb mock)
@@ -67,22 +67,23 @@ src/
   app/
     fonts.ts                   jedyne miejsce ładowania krojów (next/font)
     globals.css                mapowanie tokenów na zmienne shadcn/Tailwind
-    logowanie/                 wybór roli demo / formularz logowania
+    login/                     wybór roli demo / formularz logowania
     (app)/                     widoki po zalogowaniu (wspólny AppShell)
       page.tsx                 pulpit przełożonego
-      oceny/nowa/              start oceny
-      oceny/[id]/              kreator oceny
+      assessments/new/         start oceny
+      assessments/[id]/        kreator oceny
       hr/                      monitoring HR
-      asystent/                czat z asystentem
+      assistant/               czat z asystentem
   components/
     ui/                        komponenty bazowe w stylu shadcn/ui
     wizard/                    kroki kreatora
-    assistant-chat.tsx         czat z cytatami (używany w kreatorze i /asystent)
+    assistant-chat.tsx         czat z cytatami (używany w kreatorze i /assistant)
     app-shell.tsx              układ, nawigacja, kontrola ról
   lib/
     api/                       typy, klient HTTP, mocki
     domain.ts                  reguły: kryteria obowiązkowe B/C, punkty, mediana
-    osp-samples.ts             przykładowe OSP (skrót z materiałów organizatora)
+    routes.ts                  ścieżki aplikacji (jedno miejsce)
+    job-description-samples.ts przykładowe OSP (skrót z materiałów organizatora)
   styles/tokens.css            wszystkie tokeny wizualne (kolory, promienie, odstępy, kroje)
 ```
 

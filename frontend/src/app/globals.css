@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
 
-/* Mapowanie tokenów na nazwy zmiennych shadcn/ui. */
 :root {
   --background: var(--kk-color-bg);
   --foreground: var(--kk-color-text);
@@ -75,7 +74,6 @@
   }
 }
 
-/* Komunikat dla ekranów węższych niż 1024 px – aplikacja tylko na komputer. */
 .kk-desktop-only {
   display: contents;
 }

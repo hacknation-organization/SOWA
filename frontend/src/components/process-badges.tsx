@@ -9,6 +9,8 @@ const STATUS_VARIANT = {
   overdue: "danger",
 } as const;
 
+const URGENT_DAYS = 7;
+
 export function StatusBadge({ status }: { status: ProcessStatus }) {
   return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>;
 }
@@ -23,9 +25,9 @@ export function Deadline({ iso, done }: { iso?: string; done?: boolean }) {
   let note = "";
   if (!done && days != null) {
     if (days < 0) note = ` (${Math.abs(days)} dni po terminie)`;
-    else if (days <= 7) note = ` (za ${days} dni)`;
+    else if (days <= URGENT_DAYS) note = ` (za ${days} dni)`;
   }
-  const urgent = !done && days != null && days <= 7;
+  const urgent = !done && days != null && days <= URGENT_DAYS;
   return (
     <span className={urgent ? "font-medium text-destructive" : undefined}>
       {formatDate(iso)}

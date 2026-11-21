@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label, Select } from "@/components/ui/form";
 import { api, TYPE_LABELS, type ProcessType } from "@/lib/api";
+import { assessmentPath } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
 
 export default function NewAssessmentPage() {
@@ -28,7 +29,7 @@ const TYPE_HINTS: Record<ProcessType, string> = {
 function NewAssessmentForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const initialType: ProcessType = params.get("typ") === "first" ? "first" : "periodic";
+  const initialType: ProcessType = params.get("type") === "first" ? "first" : "periodic";
   const [type, setType] = useState<ProcessType>(initialType);
   const [employeeId, setEmployeeId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +44,8 @@ function NewAssessmentForm() {
     }
     setBusy(true);
     try {
-      const p = await api.createProcess({ employee_id: employeeId, type, form: null });
-      router.push(`/oceny/${p.id}`);
+      const created = await api.createProcess({ employee_id: employeeId, type, form: null });
+      router.push(assessmentPath(created.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się utworzyć oceny");
       setBusy(false);

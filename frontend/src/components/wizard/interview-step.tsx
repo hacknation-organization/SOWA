@@ -9,7 +9,6 @@ import { Label, Textarea } from "@/components/ui/form";
 import { api } from "@/lib/api";
 import type { StepProps } from "./types";
 
-/** Wyciąga sekcję „plan rozwoju” z odpowiedzi asystenta (jeśli występuje). */
 function extractPlan(answer: string): string {
   const match = /plan\p{L}* rozwoju[^\n]*\n/iu.exec(answer);
   if (!match) return answer;

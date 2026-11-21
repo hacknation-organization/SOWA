@@ -1,5 +1,3 @@
-// Klient API w pamięci (tryb bez NEXT_PUBLIC_API_URL).
-// Stan jest zapisywany w localStorage, by przetrwał odświeżenie strony.
 import { ApiError, type ApiClient } from "../client";
 import type {
   Competency,
@@ -10,6 +8,7 @@ import type {
 } from "../types";
 import { LEVEL_LABELS, STAGES, TYPE_LABELS } from "../types";
 import { LEVEL_POINTS, suggestLevel } from "../../domain";
+import { DAY_MS } from "../../utils";
 import modelJson from "./competency-model.json";
 import { mockAsk } from "./assistant";
 import { DEMO_USERS, EMPLOYEES, seedProcesses } from "./data";
@@ -17,6 +16,7 @@ import { buildPdf } from "./pdf";
 
 const MODEL = modelJson as Competency[];
 const STORE_KEY = "kk.mock.v1";
+const DEFAULT_DEADLINE_DAYS = 30;
 
 interface Decision {
   level: LevelValue;
@@ -36,9 +36,7 @@ function load(): Store {
   try {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORE_KEY) : null;
     if (raw) store = JSON.parse(raw) as Store;
-  } catch {
-    /* uszkodzony stan – zaczynamy od nowa */
-  }
+  } catch {}
   store ??= { processes: seedProcesses(), decisions: {}, seq: 100 };
   return store;
 }
@@ -46,22 +44,25 @@ function load(): Store {
 function save() {
   try {
     window.localStorage.setItem(STORE_KEY, JSON.stringify(store));
-  } catch {
-    /* tryb prywatny / brak miejsca – stan zostaje tylko w pamięci */
-  }
+  } catch {}
 }
 
 const delay = <T,>(value: T, ms = 120): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(structuredClone(value)), ms));
 
 function decorate(p: Process): Process {
-  const e = EMPLOYEES.find((x) => x.id === p.employee_id);
+  const employee = EMPLOYEES.find((x) => x.id === p.employee_id);
   const overdue =
     p.status !== "completed" && p.deadline != null && new Date(p.deadline).getTime() < Date.now();
-  return { ...p, employee_name: e?.full_name, unit: e?.unit, status: overdue ? "overdue" : p.status };
+  return {
+    ...p,
+    employee_name: employee?.full_name,
+    unit: employee?.unit,
+    status: overdue ? "overdue" : p.status,
+  };
 }
 
-function find(id: string): Process {
+function findProcess(id: string): Process {
   const p = load().processes.find((x) => x.id === id);
   if (!p) throw new ApiError(404, "Nie znaleziono procesu oceny");
   return p;
@@ -166,7 +167,7 @@ export function createMockClient(): ApiClient {
         form: body.form,
         stage: "job_description",
         status: "in_progress",
-        deadline: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+        deadline: new Date(Date.now() + DEFAULT_DEADLINE_DAYS * DAY_MS).toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         job_description: "",
@@ -177,9 +178,9 @@ export function createMockClient(): ApiClient {
       save();
       return delay(decorate(p));
     },
-    getProcess: async (id) => delay(decorate(find(id))),
+    getProcess: async (id) => delay(decorate(findProcess(id))),
     async updateProcess(id, body) {
-      const p = find(id);
+      const p = findProcess(id);
       if (body.job_description !== undefined) p.job_description = body.job_description;
       if (body.form !== undefined) p.form = body.form;
       if (body.interview_notes !== undefined) p.interview_notes = body.interview_notes;
@@ -190,28 +191,28 @@ export function createMockClient(): ApiClient {
       return delay(decorate(p));
     },
     async setCriteria(id, competencyIds) {
-      const p = find(id);
+      const p = findProcess(id);
       p.competency_ids = [...competencyIds];
       touch(p);
       return delay(decorate(p));
     },
     async setRating(id, indicatorId, body) {
-      const p = find(id);
+      const p = findProcess(id);
       p.ratings = (p.ratings ?? []).filter((r) => r.indicator_id !== indicatorId);
       p.ratings.push({ indicator_id: indicatorId, level: body.level, example: body.example });
       touch(p);
       return delay(decorate(p), 40);
     },
-    getSummary: async (id) => delay(summary(find(id))),
+    getSummary: async (id) => delay(summary(findProcess(id))),
     async setDecision(id, competencyId, body) {
-      const p = find(id);
+      const p = findProcess(id);
       const s = load();
       s.decisions[id] ??= {};
       s.decisions[id][competencyId] = { level: body.level, justification: body.justification };
       touch(p);
       return delay(summary(p));
     },
-    getPdf: async (id) => delay(null, 300).then(() => buildPdf(pdfLines(find(id)))),
+    getPdf: async (id) => delay(null, 300).then(() => buildPdf(pdfLines(findProcess(id)))),
     async getHrProcesses(filters) {
       const list = load()
         .processes.map(decorate)
@@ -222,7 +223,7 @@ export function createMockClient(): ApiClient {
     },
     async sendReminders(ids) {
       const now = new Date().toISOString();
-      for (const id of ids) find(id).reminder_sent_at = now;
+      for (const id of ids) findProcess(id).reminder_sent_at = now;
       save();
       return delay({ sent: ids.length });
     },

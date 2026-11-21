@@ -1,7 +1,3 @@
-// Generuje src/lib/api/mock/competency-model.json z oficjalnego Model_kompetencji.xlsx.
-// Użycie: node scripts/build-mock-model.mjs [ścieżka/do/Model_kompetencji.xlsx]
-// Bez argumentu szuka docs/HackNation/Model_kompetencji.xlsx w katalogach nadrzędnych.
-// Identyfikatory (K01, K01-W1) są zgodne ze skryptem importu backendu.
 import { existsSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,7 +30,6 @@ function findXlsx() {
 
 const clean = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
 
-// Nazwy kompetencji w xlsx są wersalikami – zamieniamy na sentence case z zachowaniem „/”.
 function sentenceCase(name) {
   const lower = name.toLocaleLowerCase("pl-PL");
   return lower.charAt(0).toLocaleUpperCase("pl-PL") + lower.slice(1);
@@ -46,15 +41,15 @@ const rows = (ws) => XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
 const index = rows(wb.Sheets[wb.SheetNames[0]])
   .filter((r) => r[0] != null && /^\d+$/.test(String(r[0]).trim()) && r[1])
-  .map((r) => ({ lp: Number(String(r[0]).trim()), name: clean(r[1]), count: Number(r[2]) }));
+  .map((r) => ({ ordinal: Number(String(r[0]).trim()), name: clean(r[1]), count: Number(r[2]) }));
 
 const sheets = wb.SheetNames.slice(1);
 if (sheets.length !== index.length) {
   throw new Error(`Spis ma ${index.length} pozycji, a arkuszy kompetencji jest ${sheets.length}`);
 }
 
-const competencies = index.map(({ lp, name, count }, i) => {
-  const id = `K${String(lp).padStart(2, "0")}`;
+const competencies = index.map(({ ordinal, name, count }, i) => {
+  const id = `K${String(ordinal).padStart(2, "0")}`;
   const indicators = [];
   for (const r of rows(wb.Sheets[sheets[i]]).slice(1)) {
     if (!clean(r[0]) || !r.slice(1, 6).some(Boolean)) continue;

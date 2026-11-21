@@ -1,5 +1,3 @@
-// Zaślepka asystenta RAG: dopasowanie słów kluczowych do krótkiej bazy fragmentów.
-// Prawdziwy asystent (backend /assistant/ask) zastąpi ten moduł bez zmian w UI.
 import type { AskRequest, AskResponse, Citation, Competency, Process } from "../types";
 import { LEVEL_LABELS } from "../types";
 
@@ -22,7 +20,7 @@ interface Entry {
   citations: Omit<Citation, "marker">[];
 }
 
-const KB: Entry[] = [
+const KNOWLEDGE_BASE: Entry[] = [
   {
     keywords: ["arkusz b", "kierownicz", "kryteria obowiązkowe b"],
     answer:
@@ -106,7 +104,7 @@ function withMarkers(cits: Omit<Citation, "marker">[]): Citation[] {
 
 function formal(question: string): AskResponse {
   const q = question.toLocaleLowerCase("pl-PL");
-  const hits = KB.filter((e) => e.keywords.some((k) => q.includes(k)));
+  const hits = KNOWLEDGE_BASE.filter((e) => e.keywords.some((k) => q.includes(k)));
   if (hits.length === 0) {
     return {
       answer:
