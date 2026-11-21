@@ -1,14 +1,3 @@
-"""Budowa indeksu RAG: ekstrakcja + chunkowanie korpusu, opcjonalnie embeddingi Gemini.
-
-Użycie (z katalogu backend/):
-    python scripts/ingest.py [--docs ŚCIEŻKA_DO_docs/HackNation] [--no-embed]
-
-Wynik:
-    data/corpus/chunks.jsonl         – chunki z metadanymi
-    data/corpus/embeddings.npy       – macierz embeddingów (gdy ustawiony GEMINI_API_KEY)
-    data/corpus/embeddings.meta.json – model, wymiar i kolejność id chunków
-"""
-
 from __future__ import annotations
 
 import argparse

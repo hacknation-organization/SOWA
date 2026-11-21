@@ -1,5 +1,3 @@
-"""Testy serwisu z atrapą LLM – bez sieci."""
-
 import asyncio
 import dataclasses
 
@@ -57,8 +55,6 @@ def run(coro):
     return asyncio.run(coro)
 
 
-# -- walidacja cytatów -------------------------------------------------------------
-
 def test_validate_citations_drops_unknown_and_renumbers():
     text, cited = validate_citations("Limit to 3 kryteria [3]. Skala ma 5 poziomów [1, 7]. Nic [9].", CHUNKS[:3])
     assert text == "Limit to 3 kryteria [1]. Skala ma 5 poziomów [2]. Nic."
@@ -69,8 +65,6 @@ def test_validate_citations_uses_used_markers_when_text_has_none():
     text, cited = validate_citations("Odpowiedź bez markerów.", CHUNKS[:2], used_markers=[2, 5])
     assert text.endswith("[1]") and [c["id"] for _, c in cited] == ["o#2"]
 
-
-# -- ścieżka odpowiedzi --------------------------------------------------------------
 
 def test_answer_with_valid_citations():
     llm = FakeLLM({"status": "ok", "answer": "Oceniający może wybrać nie więcej niż 3 kryteria dodatkowe [1].",
@@ -143,8 +137,6 @@ def test_process_priority_prefers_matching_path():
     assert hits[0].chunk["applies_to"] in {"pierwsza", "oba"}
 
 
-# -- tryb interview ---------------------------------------------------------------
-
 def test_interview_mode_uses_scrubbed_context_and_model_chunks():
     llm = FakeLLM({"status": "ok", "answer": "- Zapytaj o przykłady pism (dane z procesu oceny), "
                                              "odnosząc się do opisu poziomu oczekiwań [1]."})
@@ -156,8 +148,8 @@ def test_interview_mode_uses_scrubbed_context_and_model_chunks():
     system, user = llm.calls[0]
     assert "Kowalski" not in user and "jan@urzad.gov.pl" not in user and "[e-mail]" in user
     assert "<dane_oceny>" in user and "TRYB: przygotowanie rozmowy" in system
-    assert "KOMUNIKACJA – wskaźnik 3" in user  # dołączony wskaźnik z modelu kompetencji
-    assert "<system>" not in user  # znacznik z treści chunka zneutralizowany
+    assert "KOMUNIKACJA – wskaźnik 3" in user
+    assert "<system>" not in user
     assert res["citations"] and res["confidence"] == "high"
 
 
@@ -171,8 +163,6 @@ def test_interview_decision_request_refused():
 def test_empty_question():
     assert run(make_service(None).ask("   ", "formal"))["confidence"] == "none"
 
-
-# -- strażnicy ---------------------------------------------------------------------
 
 @pytest.mark.parametrize("q", [
     "Jaką ocenę okresową powinienem wystawić pracownikowi?",

@@ -1,5 +1,3 @@
-"""Konfiguracja modułu RAG (zmienne środowiskowe, bez zależności od ustawień backendu)."""
-
 from __future__ import annotations
 
 import os
@@ -24,14 +22,12 @@ class RagSettings:
     groq_api_key: str
     groq_model: str
     top_k: int
-    # próg pokrycia zapytania (ważony IDF) poniżej którego odmawiamy bez wywołania LLM
     min_coverage: float
-    # próg podobieństwa cosinusowego embeddingów (gdy dostępne) – alternatywny warunek dopuszczenia
     min_cosine: float
     llm_timeout_s: float
 
     @classmethod
-    def from_env(cls) -> "RagSettings":
+    def from_env(cls) -> RagSettings:
         return cls(
             corpus_dir=Path(_env("RAG_CORPUS_DIR") or DEFAULT_CORPUS_DIR),
             gemini_api_key=_env("GEMINI_API_KEY") or _env("GOOGLE_API_KEY"),

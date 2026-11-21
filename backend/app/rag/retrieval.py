@@ -1,6 +1,3 @@
-"""Retrieval hybrydowy: BM25 + (opcjonalnie) embeddingi Gemini, fuzja RRF, priorytet applies_to,
-miara pokrycia zapytania używana jako próg odmowy."""
-
 from __future__ import annotations
 
 import json
@@ -9,32 +6,31 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 from rank_bm25 import BM25Okapi
 
 from .textutil import fold, tokenize
 
 RRF_K = 60
-# mnożnik wyniku RRF dla chunka z „przeciwnej” ścieżki (pierwsza vs okresowa)
 OTHER_PROCESS_PENALTY = 0.55
 
 
 @dataclass
 class Hit:
     chunk: dict
-    score: float  # wynik po fuzji (do sortowania)
+    score: float
     bm25_rank: int | None
     dense_rank: int | None
     cosine: float | None
-    coverage: float  # ważone IDF pokrycie terminów zapytania przez chunk (0..1)
+    coverage: float
 
 
 def detect_process(question: str, context: dict | None = None) -> str | None:
-    """Z kontekstu lub treści pytania ustala, której ścieżki dotyczy pytanie."""
     if context:
         p = str(context.get("process") or context.get("process_type") or context.get("typ") or "").lower()
         if p.startswith("pierw") or p in {"first", "initial"}:
             return "pierwsza"
-        if p.startswith("okres") or p in {"periodic"}:
+        if p.startswith("okres") or p == "periodic":
             return "okresowa"
     q = fold(question)
     first = bool(re.search(r"pierwsz\w* ocen|ocen\w* pierwsz|sprawozdan|sluzb\w* przygotow|rozmow\w* wstepn", q))
@@ -61,24 +57,19 @@ class Retriever:
         self.token_sets = [set(t) for t in self.tokens]
         self.emb = None
         if embeddings is not None and embed_ids is not None:
-            import numpy as np
-
             pos = {cid: i for i, cid in enumerate(embed_ids)}
             if all(c["id"] in pos for c in chunks):
                 m = np.asarray([embeddings[pos[c["id"]]] for c in chunks], dtype="float32")
                 m /= np.linalg.norm(m, axis=1, keepdims=True) + 1e-9
                 self.emb = m
 
-    # -- ładowanie z dysku ---------------------------------------------------
     @classmethod
-    def from_dir(cls, corpus_dir: Path) -> "Retriever":
+    def from_dir(cls, corpus_dir: Path) -> Retriever:
         chunks = [json.loads(line) for line in (corpus_dir / "chunks.jsonl").read_text(encoding="utf-8").splitlines()
                   if line.strip()]
         emb, ids = None, None
         npy, meta = corpus_dir / "embeddings.npy", corpus_dir / "embeddings.meta.json"
         if npy.exists() and meta.exists():
-            import numpy as np
-
             emb = np.load(npy)
             ids = json.loads(meta.read_text(encoding="utf-8"))["ids"]
         return cls(chunks, emb, ids)
@@ -87,11 +78,7 @@ class Retriever:
     def has_dense(self) -> bool:
         return self.emb is not None
 
-    # -- miary -----------------------------------------------------------------
     def coverage(self, q_tokens: list[str], idx: int) -> float:
-        """Jaka część „masy informacyjnej” (IDF) terminów zapytania występuje w chunku.
-        Terminy nieznane w korpusie dostają maksymalne IDF – pytanie o coś, czego w bazie nie ma,
-        ma przez to niskie pokrycie."""
         uniq = set(q_tokens)
         if not uniq:
             return 0.0
@@ -99,7 +86,6 @@ class Retriever:
         hit = sum(self.idf[t] for t in uniq if t in self.token_sets[idx])
         return hit / total if total else 0.0
 
-    # -- wyszukiwanie ------------------------------------------------------------
     def search(self, query: str, k: int = 6, process: str | None = None, query_vec=None,
                doc_types: set[str] | None = None, candidates: int = 40) -> list[Hit]:
         q_tokens = tokenize(query)
@@ -113,8 +99,6 @@ class Retriever:
         dense_rank: dict[int, int] = {}
         cos: dict[int, float] = {}
         if self.emb is not None and query_vec is not None:
-            import numpy as np
-
             v = np.asarray(query_vec, dtype="float32")
             v /= np.linalg.norm(v) + 1e-9
             sims = self.emb @ v
@@ -123,32 +107,21 @@ class Retriever:
             cos = {i: float(sims[i]) for i in allowed}
 
         fused: dict[int, float] = {}
-        for i, r in bm_rank.items():
-            fused[i] = fused.get(i, 0.0) + 1.0 / (RRF_K + r + 1)
-        for i, r in dense_rank.items():
-            fused[i] = fused.get(i, 0.0) + 1.0 / (RRF_K + r + 1)
+        for ranking in (bm_rank, dense_rank):
+            for i, r in ranking.items():
+                fused[i] = fused.get(i, 0.0) + 1.0 / (RRF_K + r + 1)
 
         if process:
             for i in fused:
-                a = self.chunks[i]["applies_to"]
-                if a not in ("oba", process):
+                if self.chunks[i]["applies_to"] not in ("oba", process):
                     fused[i] *= OTHER_PROCESS_PENALTY
 
         order = sorted(fused, key=lambda i: -fused[i])[:k]
         return [Hit(self.chunks[i], fused[i], bm_rank.get(i), dense_rank.get(i), cos.get(i),
                     self.coverage(q_tokens, i)) for i in order]
 
-    def by_ids(self, ids: list[str]) -> list[dict]:
-        pos = {c["id"]: c for c in self.chunks}
-        return [pos[i] for i in ids if i in pos]
-
-    def find(self, pred) -> list[dict]:
-        return [c for c in self.chunks if pred(c)]
-
 
 def evidence_strength(hits: list[Hit], min_coverage: float, min_cosine: float) -> tuple[bool, float, float | None]:
-    """Czy wyniki wyszukiwania są wystarczającą podstawą do odpowiedzi.
-    Zwraca (wystarczające?, najlepsze pokrycie, najlepszy cosinus)."""
     if not hits:
         return False, 0.0, None
     best_cov = max(h.coverage for h in hits)

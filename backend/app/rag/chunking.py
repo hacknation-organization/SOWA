@@ -1,14 +1,3 @@
-"""Strukturalne chunkowanie korpusu.
-
-Każdy chunk to słownik:
-    id, source, source_id, doc_type, path, page, applies_to, text
-
-``text`` zawiera prefiks ścieżki (np. ``[Rozporządzenie ... | § 5 ust. 2]``), dzięki czemu zarówno
-BM25, jak i embeddingi „widzą” kontekst fragmentu, a LLM może wskazać źródło.
-
-Funkcje są czyste (operują na tekście / strukturach), ekstrakcja z plików jest w ``extract.py``.
-"""
-
 from __future__ import annotations
 
 import re
@@ -24,10 +13,10 @@ MIN_TOKENS = 80
 @dataclass
 class SourceInfo:
     source_id: str
-    title: str  # pełna, czytelna nazwa źródła – trafia do cytatu
-    short: str  # krótka nazwa do prefiksu chunka
-    doc_type: str  # rozporzadzenie | poradnik | model | formularz | qa
-    applies_to: str  # pierwsza | okresowa | oba
+    title: str
+    short: str
+    doc_type: str
+    applies_to: str
     skip_appendices: set[str] = field(default_factory=set)
 
 
@@ -53,16 +42,11 @@ def make_chunk(src: SourceInfo, path: str, body: str, page: int | None, n: int,
 
 
 def chunk_body(chunk: dict) -> str:
-    """Treść chunka bez prefiksu ścieżki."""
     text = chunk["text"]
     if text.startswith("[") and "]\n" in text:
         return text.split("]\n", 1)[1]
     return text
 
-
-# ---------------------------------------------------------------------------
-# Pakowanie zdań w okna o zadanej długości
-# ---------------------------------------------------------------------------
 
 def pack_sentences(sentences: list[str], target: int = TARGET_TOKENS, max_tokens: int = MAX_TOKENS,
                    overlap: int = 1) -> list[str]:
@@ -79,7 +63,6 @@ def pack_sentences(sentences: list[str], target: int = TARGET_TOKENS, max_tokens
         cur_tok += st
     if cur:
         tail = " ".join(cur)
-        # bardzo krótki ogon dołączamy do poprzedniego okna
         if windows and approx_tokens(tail) < MIN_TOKENS and approx_tokens(windows[-1]) + approx_tokens(tail) <= max_tokens + 100:
             windows[-1] = windows[-1] + " " + " ".join(cur[overlap:] if overlap else cur)
         elif not windows or tail != windows[-1]:
@@ -88,27 +71,29 @@ def pack_sentences(sentences: list[str], target: int = TARGET_TOKENS, max_tokens
 
 
 def _lines_to_prose(lines: list[str]) -> str:
-    """Łączy linie z PDF w akapity, zachowując punktory i wyliczenia w osobnych liniach."""
     out: list[str] = []
     for ln in lines:
         ln = ln.strip()
         if not ln:
             continue
         starts_item = bool(re.match(r"^([•\-−–]|\d+\)|[a-z]\)|\d+\.\s|§)", ln))
-        if out and not starts_item and not out[-1].endswith((":",)):
+        if out and not starts_item and not out[-1].endswith(":"):
             out[-1] = out[-1] + "\n" + ln
         else:
             out.append(ln)
     text = "\n".join(out)
     text = dehyphenate(text)
-    # zwykłe złamania linii wewnątrz zdań -> spacja
     text = re.sub(r"(?<![.:;])\n(?![•\-−–]|\d+\)|[a-z]\)|\d+\.\s|§)", " ", text)
     return text
 
 
-# ---------------------------------------------------------------------------
-# Akty prawne
-# ---------------------------------------------------------------------------
+CRITERIA_NAMES = [
+    "KOMUNIKACJA", "KREATYWNOŚĆ", "NEGOCJOWANIE", "ORGANIZACJA PRACY I ORIENTACJA NA OSIĄGANIE CELÓW",
+    "ORIENTACJA NA KLIENTA/INTERESANTA", "PODEJMOWANIE DECYZJI I ODPOWIEDZIALNOŚĆ",
+    "RADZENIE SOBIE W SYTUACJACH KRYZYSOWYCH", "RZETELNOŚĆ", "MYŚLENIE ANALITYCZNE",
+    "WYKORZYSTYWANIE WIEDZY I DOSKONALENIE ZAWODOWE", "WSPÓŁPRACA", "WYSTĄPIENIA PUBLICZNE",
+    "ZARZĄDZANIE LUDŹMI", "ZARZĄDZANIE STRATEGICZNE",
+]
 
 _DU_HEADER = re.compile(r"^Dziennik Ustaw\s*[–-]\s*\d+\s*[–-].*Poz\.\s*\d+\s*$")
 _PAR = re.compile(r"^§\s*(\d+[a-z]?)\.\s*(.*)$")
@@ -131,7 +116,6 @@ def _clean_legal_lines(pages: list[tuple[int, str]]) -> list[Line]:
 
 
 def _legal_units(body: list[Line]) -> list[tuple[str, list[Line]]]:
-    """Dzieli treść aktu na jednostki § (i preambułę)."""
     units: list[tuple[str, list[Line]]] = []
     cur_label = "preambuła"
     cur: list[Line] = []
@@ -150,7 +134,6 @@ def _legal_units(body: list[Line]) -> list[tuple[str, list[Line]]]:
 
 
 def _split_ust(par_label: str, lines: list[Line]) -> list[tuple[str, list[Line]]]:
-    """Dzieli § na ustępy; pierwszy ustęp jest w linii „§ N. 1. ...”."""
     groups: list[tuple[int, list[Line]]] = []
     first = lines[0].text
     m = _PAR.match(first)
@@ -167,7 +150,6 @@ def _split_ust(par_label: str, lines: list[Line]) -> list[tuple[str, list[Line]]
             expected += 1
         else:
             groups[-1][1].append(ln)
-    # pakowanie ustępów w chunki
     out: list[tuple[str, list[Line]]] = []
     buf: list[tuple[int, list[Line]]] = []
 
@@ -191,7 +173,6 @@ def _split_ust(par_label: str, lines: list[Line]) -> list[tuple[str, list[Line]]
 
 def chunk_legal_act(src: SourceInfo, pages: list[tuple[int, str]]) -> list[dict]:
     lines = _clean_legal_lines(pages)
-    # granica treści i załączników
     split_at = next((i for i, ln in enumerate(lines) if _APPX.match(ln.text)), len(lines))
     body, appx = lines[:split_at], lines[split_at:]
     chunks: list[dict] = []
@@ -210,20 +191,7 @@ def chunk_legal_act(src: SourceInfo, pages: list[tuple[int, str]]) -> list[dict]
             n += 1
             chunks.append(make_chunk(src, label, text, ulines[0].page, n))
 
-    # załączniki
-    appendices: list[tuple[str, list[Line]]] = []
-    for ln in appx:
-        m = _APPX.match(ln.text)
-        if m:
-            if appendices and appendices[-1][0] == m.group(1) and len(appendices[-1][1]) <= 1:
-                continue  # zduplikowany nagłówek („Załącznik nr 2” dwa razy pod rząd)
-            appendices.append((m.group(1), []))
-            continue
-        if _NOISE.match(ln.text) or not appendices:
-            continue
-        appendices[-1][1].append(ln)
-
-    for num, alines in appendices:
+    for num, alines in _group_appendices(appx):
         if num in src.skip_appendices or not alines:
             continue
         title = _appendix_title(alines)
@@ -245,17 +213,29 @@ def chunk_legal_act(src: SourceInfo, pages: list[tuple[int, str]]) -> list[dict]
     return chunks
 
 
+def _group_appendices(lines: list[Line]) -> list[tuple[str, list[Line]]]:
+    appendices: list[tuple[str, list[Line]]] = []
+    for ln in lines:
+        m = _APPX.match(ln.text)
+        if m:
+            is_repeated_header = appendices and appendices[-1][0] == m.group(1) and len(appendices[-1][1]) <= 1
+            if not is_repeated_header:
+                appendices.append((m.group(1), []))
+            continue
+        if appendices and not _NOISE.match(ln.text):
+            appendices[-1][1].append(ln)
+    return appendices
+
+
 def _appendix_title(lines: list[Line]) -> str:
     for ln in lines[:6]:
         t = ln.text.strip()
-        if t.isupper() and len(t) > 3 and not t.startswith("CZĘ"):
-            if t.startswith("ARKUSZ") or t.startswith("WYKAZ") or t.startswith("OPISY") or t.startswith("FORMULARZ"):
-                return t.title() if t.startswith(("WYKAZ", "OPISY")) else t
+        if t.isupper() and len(t) > 3 and t.startswith(("ARKUSZ", "WYKAZ", "OPISY", "FORMULARZ")):
+            return t.title() if t.startswith(("WYKAZ", "OPISY")) else t
     return ""
 
 
 def _split_items(lines: list[Line]) -> list[tuple[int, str, list[Line]]]:
-    """Załączniki-wykazy (np. „WYKAZ KRYTERIÓW OCENY”): osobny chunk na każdą pozycję."""
     head = " ".join(x.text for x in lines[:4]).upper()
     if not ("WYKAZ KRYTERIÓW" in head or "OPISY ELEMENTÓW" in head):
         return []
@@ -269,40 +249,31 @@ def _split_items(lines: list[Line]) -> list[tuple[int, str, list[Line]]]:
             expected += 1
         elif items:
             items[-1][2].append(ln)
-    # Nazwy kryteriów są w tabeli złamane między wiersze i przemieszane z opisem – ustalamy
-    # pełną nazwę ze słownika i usuwamy jej fragmenty (wersaliki) z treści opisu.
-    fixed = []
-    for no, name, ils in items:
-        first = fold(name.split()[0])
-        upper_tokens = {w.strip(",.") for x in ils for w in x.text.split() if w.isupper()}
-        cands = [c for c in CRITERIA_NAMES if fold(c).startswith(first)]
-        full = next((c for c in cands if all(w in upper_tokens for w in re.split(r"[ /]+", c) if len(w) > 2)),
-                    cands[0] if cands else name)
-        name_words = {w for w in re.split(r"[ /]+", full.upper()) if w}
-        cleaned = []
-        for x in ils:
-            t = re.sub(r"^\d+\.\s+", "", x.text) if x is ils[0] else x.text
-            words = [w for w in t.split() if not (w.isupper() and w.strip(",.") in name_words)]
-            if words:
-                cleaned.append(Line(" ".join(words), x.page))
-        body = [Line(f"Kryterium oceny: {full}. Opis kryterium:", ils[0].page)] + cleaned
-        fixed.append((no, full, body))
-    return fixed
+    return [_criterion_item(no, name, ils) for no, name, ils in items]
 
 
-# Pełne nazwy kryteriów oceny / elementów oceny (zał. nr 1 do obu rozporządzeń).
-CRITERIA_NAMES = [
-    "KOMUNIKACJA", "KREATYWNOŚĆ", "NEGOCJOWANIE", "ORGANIZACJA PRACY I ORIENTACJA NA OSIĄGANIE CELÓW",
-    "ORIENTACJA NA KLIENTA/INTERESANTA", "PODEJMOWANIE DECYZJI I ODPOWIEDZIALNOŚĆ",
-    "RADZENIE SOBIE W SYTUACJACH KRYZYSOWYCH", "RZETELNOŚĆ", "MYŚLENIE ANALITYCZNE",
-    "WYKORZYSTYWANIE WIEDZY I DOSKONALENIE ZAWODOWE", "WSPÓŁPRACA", "WYSTĄPIENIA PUBLICZNE",
-    "ZARZĄDZANIE LUDŹMI", "ZARZĄDZANIE STRATEGICZNE",
-]
+def _full_criterion_name(name: str, lines: list[Line]) -> str:
+    first = fold(name.split()[0])
+    upper_tokens = {w.strip(",.") for x in lines for w in x.text.split() if w.isupper()}
+    candidates = [c for c in CRITERIA_NAMES if fold(c).startswith(first)]
+    return next(
+        (c for c in candidates if all(w in upper_tokens for w in re.split(r"[ /]+", c) if len(w) > 2)),
+        candidates[0] if candidates else name,
+    )
 
 
-# ---------------------------------------------------------------------------
-# Poradniki
-# ---------------------------------------------------------------------------
+def _criterion_item(no: int, name: str, lines: list[Line]) -> tuple[int, str, list[Line]]:
+    full = _full_criterion_name(name, lines)
+    name_words = {w for w in re.split(r"[ /]+", full.upper()) if w}
+    cleaned = []
+    for x in lines:
+        t = re.sub(r"^\d+\.\s+", "", x.text) if x is lines[0] else x.text
+        words = [w for w in t.split() if not (w.isupper() and w.strip(",.") in name_words)]
+        if words:
+            cleaned.append(Line(" ".join(words), x.page))
+    body = [Line(f"Kryterium oceny: {full}. Opis kryterium:", lines[0].page)] + cleaned
+    return no, full, body
+
 
 _TOC = re.compile(r"^(\d+(?:\.\d+)*)\.\s+(.+?)\s*\.{3,}\s*(\d+)\s*$")
 _TOC_START = re.compile(r"^(\d+(?:\.\d+)*)\.\s+\S")
@@ -323,7 +294,7 @@ def parse_toc(toc_text: str) -> list[tuple[str, str]]:
         if m:
             entries.append((m.group(1), m.group(2).strip()))
         elif _TOC_START.match(s):
-            pending = s  # wpis złamany na dwie linie
+            pending = s
     return entries
 
 
@@ -340,8 +311,7 @@ def chunk_guide(src: SourceInfo, pages: list[tuple[int, str]], toc_page: int = 2
                 continue
             lines.append(Line(s, page_no))
 
-    # lokalizacja nagłówków z spisu treści – sekwencyjnie, by uniknąć fałszywych trafień
-    heads: list[tuple[int, str, str]] = []  # (index linii, numer, tytuł)
+    heads: list[tuple[int, str, str]] = []
     pos = 0
     for num, title in toc:
         key = fold(f"{num}. {title}")[:28]
@@ -384,14 +354,8 @@ def chunk_guide(src: SourceInfo, pages: list[tuple[int, str]], toc_page: int = 2
     return chunks
 
 
-# ---------------------------------------------------------------------------
-# Model kompetencji (xlsx)
-# ---------------------------------------------------------------------------
-
 def chunk_competency_model(src: SourceInfo, main_rows: list[list[str]],
                            competencies: list[dict]) -> list[dict]:
-    """``main_rows`` – wiersze arkusza głównego; ``competencies`` – lista
-    ``{"name": str, "levels": [5 nazw poziomów], "indicators": [{"name": str, "levels": [5 opisów]}]}``."""
     chunks: list[dict] = []
     n = 0
     intro = [r[0] for r in main_rows if len(r) == 1 and r[0]]
@@ -414,19 +378,13 @@ def chunk_competency_model(src: SourceInfo, main_rows: list[list[str]],
             n += 1
             body = [f"Kompetencja: {name}", f"Wskaźnik behawioralny {i}/{len(inds)}: {ind['name']}",
                     "Opisy zachowań na poszczególnych poziomach:"]
-            for lvl, desc in zip(comp["levels"], ind["levels"]):
+            for lvl, desc in zip(comp["levels"], ind["levels"], strict=False):
                 body.append(f"- {lvl}: {desc}")
             chunks.append(make_chunk(src, f"{name} – wskaźnik {i}", "\n".join(body), None, n))
     return chunks
 
 
-# ---------------------------------------------------------------------------
-# Formularze (docx)
-# ---------------------------------------------------------------------------
-
 def chunk_form(src: SourceInfo, blocks: list[str], footnotes: dict[str, str]) -> list[dict]:
-    """``blocks`` – kolejne akapity / wiersze tabel arkusza; sekcje dzielone są na nagłówkach
-    pisanych wersalikami (CZĘŚĆ I, ROZMOWA WSTĘPNA itd.)."""
     sections: list[tuple[str, list[str]]] = []
     for b in blocks:
         b = b.strip()

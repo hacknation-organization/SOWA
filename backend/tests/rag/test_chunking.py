@@ -31,11 +31,9 @@ def test_legal_act_split_by_paragraph_and_ust():
     chunks = chunk_legal_act(SRC, _legal_pages())
     paths = [c["path"] for c in chunks]
     assert "§ 1" in paths and "§ 2" in paths and "§ 4" in paths
-    # długi § 3 podzielony na ustępy
     assert any(p.startswith("§ 3 ust. 1") for p in paths)
     assert any(p.startswith("§ 3 ust. ") and p != "§ 3 ust. 1" for p in paths)
     assert all(approx_tokens(c["text"]) <= MAX_TOKENS + 50 for c in chunks)
-    # nagłówek Dziennika Ustaw usunięty, prefiks ścieżki w treści
     assert not any("Dziennik Ustaw – 2" in c["text"] for c in chunks)
     c2 = next(c for c in chunks if c["path"] == "§ 2")
     assert c2["text"].startswith("[Rozp. test | § 2]\n")
@@ -71,12 +69,11 @@ def test_guide_chunks_follow_headings():
     chunks = chunk_guide(src, [(1, "Tytuł"), (2, toc), (3, body1), (4, body2)])
     paths = [c["path"] for c in chunks]
     assert paths[0] == "rozdz. 1. Wstęp"
-    # zbyt krótka sekcja 2 doklejona do 2.1, ścieżka okruszków w treści
     assert any(p.startswith("rozdz. 2.1. Termin rozmowy") for p in paths)
     sub = next(c for c in chunks if c["path"].startswith("rozdz. 2.1"))
     assert "(2. Rozmowa wstępna > 2.1. Termin rozmowy)" in sub["text"]
     assert sub["page"] == 4
-    assert not any(c["text"].rstrip().endswith("\n3") for c in chunks)  # numer strony usunięty
+    assert not any(c["text"].rstrip().endswith("\n3") for c in chunks)
 
 
 def test_pack_sentences_respects_limits():
@@ -84,7 +81,6 @@ def test_pack_sentences_respects_limits():
     windows = pack_sentences(sents)
     assert len(windows) > 3
     assert all(approx_tokens(w) <= MAX_TOKENS + 30 for w in windows)
-    # zakładka jednego zdania między oknami
     assert windows[1].split(". ")[0] in windows[0]
 
 
@@ -116,7 +112,7 @@ def test_form_sections_and_footnotes():
 def test_tokenize_folds_diacritics_and_legal_refs():
     toks = tokenize("Zgodnie z § 5 ust. 2 rozporządzenia oceniający wybiera kryteria")
     assert "par5" in toks and "ust2" in toks
-    assert "rozpor" in toks  # prefiks bez polskich znaków
+    assert "rozpor" in toks
     assert tokenize("rozporzadzenia")[:1] == tokenize("rozporządzenia")[:1]
 
 
@@ -132,6 +128,5 @@ def test_built_corpus_metadata():
         assert c["applies_to"] in {"pierwsza", "okresowa", "oba"}
         assert c["text"].startswith("[") and approx_tokens(c["text"]) <= MAX_TOKENS + 60
     by_src = Counter(c["source_id"] for c in chunks)
-    assert by_src["model_kompetencji"] == 1 + 14 + 49  # zasady + 14 list wskaźników + 49 wskaźników
-    # obie kopie rozporządzenia o ocenach okresowych nie są indeksowane podwójnie
+    assert by_src["model_kompetencji"] == 1 + 14 + 49
     assert sum(1 for c in chunks if c["source_id"] == "rozp_okresowa_2016" and c["path"] == "§ 5") == 1
