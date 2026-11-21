@@ -155,6 +155,18 @@ def summarize(rows, settings, llm, embedder, args) -> dict:
           f"Wygenerowano skryptem `python scripts/eval_rag.py{' --no-llm' if args.no_llm else ''} --write` "
           f"({time.strftime('%Y-%m-%d %H:%M')}). Zestaw: `data/corpus/qa_eval.jsonl`.", "",
           "## Wyniki", ""] + [f"- {x}" for x in lines]
+    md += ["", "## Jak czytać wyniki", "",
+           "- *hit@k* liczy pytania, dla których co najmniej jedno z oczekiwanych źródeł (dokument + jednostka: "
+           "§, rozdział poradnika, wskaźnik modelu) trafiło do fragmentów przekazanych modelowi.",
+           "- *Cytaty z właściwej jednostki* to metryka ostra: cytat z innego, też trafnego miejsca (np. poradnik "
+           "zamiast §) liczy się tylko w metryce „z właściwego dokumentu”.",
+           "- Bez LLM odmowy wynikają wyłącznie z progu pokrycia, strażnika decyzji i kontroli nieistniejących §. "
+           "Pytania spoza bazy ze słownictwem z dziedziny (np. „urlop wypoczynkowy”) przechodzą próg i są "
+           "odrzucane dopiero przez LLM (status `no_info`), który widzi, że fragmenty nie zawierają odpowiedzi.",
+           "- Historia tuningu: prefiks 6 znaków + stop-słowa → hit@k 88%, hit@3 79%; dodanie stop-słów pytających "
+           "(kogo, zrobić…) i naprawa scalonych komórek arkusza głównego → hit@k 97%; drugi rdzeń (prefiks 4) → "
+           "hit@3 94%. Próg pokrycia podniesiony z 0,45 do 0,55 (lepsze odmowy przy 1 fałszywej odmowie). "
+           "Próg dobrany na tym samym zbiorze, więc wynik jest optymistyczny – zbiór warto rozbudować."]
     if args.sweep_rows:
         md += ["", "## Przegląd progu odmowy (`RAG_MIN_COVERAGE`, bez LLM)", "",
                "| próg | poprawne odmowy (brak info) | fałszywe odmowy |", "|---|---|---|"]
