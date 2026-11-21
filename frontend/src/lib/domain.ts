@@ -24,3 +24,13 @@ export function suggestLevel(levels: (LevelValue | null)[]): LevelValue | null {
   if (rated.length === 0) return null;
   return rated[Math.floor((rated.length - 1) / 2)];
 }
+
+/** The competency model stores names in capitals ("RZETELNOŚĆ"); the UI shows them in sentence case. */
+export function competencyDisplayName(name: string): string {
+  // Mostly-capital names count too: the source has e.g. "ORGANIZACJA PRACY i ORIENTACJA…".
+  const letters = name.match(/\p{L}/gu) ?? [];
+  const capitals = letters.filter((ch) => ch !== ch.toLocaleLowerCase("pl-PL")).length;
+  if (letters.length === 0 || capitals / letters.length < 0.8) return name;
+  const lower = name.toLocaleLowerCase("pl-PL");
+  return lower.charAt(0).toLocaleUpperCase("pl-PL") + lower.slice(1);
+}

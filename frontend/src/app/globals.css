@@ -12,10 +12,10 @@
   --primary-foreground: var(--kk-color-primary-fg);
   --secondary: var(--kk-color-surface-muted);
   --secondary-foreground: var(--kk-color-text);
-  --muted: var(--kk-color-surface-muted);
+  --muted: var(--kk-color-bg);
   --muted-foreground: var(--kk-color-text-muted);
   --accent: var(--kk-color-primary-soft);
-  --accent-foreground: var(--kk-color-text);
+  --accent-foreground: var(--kk-color-primary);
   --destructive: var(--kk-color-danger);
   --border: var(--kk-color-border);
   --input: var(--kk-color-border-strong);
@@ -33,10 +33,15 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--kk-color-primary-soft);
+  --color-primary-light: var(--kk-color-primary-light);
+  --color-primary-bright: var(--kk-color-primary-bright);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--kk-color-text-subtle);
+  --color-on-dark-muted: var(--kk-color-text-on-dark-muted);
+  --color-subtle: var(--kk-color-bg-subtle);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -53,6 +58,13 @@
   --radius-sm: var(--kk-radius-sm);
   --radius-md: var(--kk-radius-md);
   --radius-lg: var(--kk-radius-lg);
+  --radius-xl: var(--kk-radius-xl);
+  --radius-2xl: var(--kk-radius-2xl);
+
+  --shadow-card: var(--kk-shadow-card);
+  --shadow-sidebar: var(--kk-shadow-sidebar);
+  --shadow-primary: var(--kk-shadow-primary);
+  --shadow-hero: var(--kk-shadow-hero);
 
   --font-sans: var(--kk-font-sans);
   --font-mono: var(--kk-font-mono);
@@ -72,6 +84,10 @@
     outline: var(--kk-focus-width) solid var(--kk-color-focus);
     outline-offset: 2px;
   }
+}
+
+@utility bg-brand-gradient {
+  background-image: var(--kk-gradient-primary);
 }
 
 .kk-desktop-only {

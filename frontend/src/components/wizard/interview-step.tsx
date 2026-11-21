@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,8 +110,8 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-6">
-      <Card className="flex h-[70vh] flex-col">
+    <div className="grid grid-cols-1 items-start gap-5 @3xl:grid-cols-2">
+      <Card className="flex h-[28rem] flex-col @3xl:sticky @3xl:top-6 @3xl:h-[70vh]">
         <CardHeader>
           <CardTitle>{showAi ? "Zaproponowane pytania" : "Twoje pytania"}</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -191,7 +192,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4 p-6">
         <div className="flex flex-col gap-2">
           <Label htmlFor="notes">Notatki z rozmowy</Label>
           <Textarea
@@ -218,18 +219,20 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           />
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button variant="outline" onClick={() => goTo("summary")}>
             Wstecz
           </Button>
-          <Button variant="secondary" onClick={() => persist()} disabled={busy}>
+          <span className="flex-1" />
+          <Button variant="ghost" onClick={() => persist()} disabled={busy}>
             Zapisz
           </Button>
           <Button onClick={() => persist("document")} disabled={busy}>
             Dalej: dokument
+            <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

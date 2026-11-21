@@ -2,14 +2,18 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { EmployeeCombobox } from "@/components/employee-combobox";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label, Select } from "@/components/ui/form";
+import { Card } from "@/components/ui/card";
+import { RadioDot } from "@/components/ui/choice";
 import { api, TYPE_LABELS, type ProcessType } from "@/lib/api";
 import { assessmentPath } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 
 export default function NewAssessmentPage() {
   return (
@@ -19,12 +23,27 @@ export default function NewAssessmentPage() {
   );
 }
 
-const TYPE_HINTS: Record<ProcessType, string> = {
-  first:
-    "Pierwsza ocena – dla osoby zatrudnionej po raz pierwszy w służbie cywilnej, przed upływem okresu umowy na czas określony.",
-  periodic:
-    "Ocena okresowa – dla członka korpusu służby cywilnej; arkusz B lub C wybierzesz w pierwszym kroku.",
-};
+const TYPE_OPTIONS: { type: ProcessType; sheet: string; hint: string }[] = [
+  {
+    type: "periodic",
+    sheet: "Arkusz B / C",
+    hint: "Dla członka korpusu służby cywilnej. Arkusz B lub C wybierzesz w pierwszym kroku.",
+  },
+  {
+    type: "first",
+    sheet: "Arkusz A",
+    hint: "Dla osoby zatrudnionej po raz pierwszy w służbie cywilnej, przed upływem okresu umowy na czas określony.",
+  },
+];
+
+const FLOW = [
+  ["Opis stanowiska", "Opcjonalnie wklej OSP — dostaniesz sugestie kryteriów."],
+  ["Kryteria", "Wybierz kompetencje do oceny."],
+  ["Ocena zachowań", "Dla każdego wskaźnika wybierz opis zachowania."],
+  ["Podsumowanie", "Zatwierdź poziom dla każdej kompetencji."],
+  ["Rozmowa", "Omów ocenę z pracownikiem."],
+  ["Dokument", "Pobierz arkusz do podpisu."],
+] as const;
 
 function NewAssessmentForm() {
   const router = useRouter();
@@ -54,63 +73,95 @@ function NewAssessmentForm() {
 
   return (
     <>
-      <PageHeader title="Nowa ocena" description="Wybierz pracownika i rodzaj oceny." />
-      <div className="max-w-2xl p-8">
-        <Card>
-          <CardContent className="pt-4">
-            <form onSubmit={submit} className="flex flex-col gap-6">
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm font-medium">Rodzaj oceny</legend>
-                {(["periodic", "first"] as ProcessType[]).map((t) => (
+      <PageHeader
+        title="Nowa ocena"
+        description="Wybierz rodzaj oceny i pracownika. Resztę poprowadzimy krok po kroku."
+      />
+      <div className="flex items-start gap-6 px-10 pb-12 pt-6">
+        <Card className="min-w-0 flex-1 p-7">
+          <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+            <fieldset className="flex flex-col gap-4">
+              <legend className="mb-4 text-base font-black">Rodzaj oceny</legend>
+              {TYPE_OPTIONS.map((o) => {
+                const checked = type === o.type;
+                return (
                   <label
-                    key={t}
-                    className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary-soft"
+                    key={o.type}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-4 rounded-xl p-[18px] transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
+                      checked
+                        ? "border-2 border-primary bg-primary-soft"
+                        : "border bg-card hover:border-primary-light",
+                    )}
                   >
                     <input
                       type="radio"
                       name="type"
-                      value={t}
-                      checked={type === t}
-                      onChange={() => setType(t)}
-                      className="mt-1"
+                      value={o.type}
+                      checked={checked}
+                      onChange={() => setType(o.type)}
+                      className="peer sr-only"
                     />
-                    <span>
-                      <span className="block font-medium">{TYPE_LABELS[t]}</span>
-                      <span className="block text-sm text-muted-foreground">{TYPE_HINTS[t]}</span>
+                    <RadioDot checked={checked} />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="flex items-center gap-2 text-[17px] font-black">
+                        {TYPE_LABELS[o.type]}
+                        <Badge variant={checked ? "onSoft" : "default"}>{o.sheet}</Badge>
+                      </span>
+                      <span className="text-[13px] font-medium leading-[19px] text-muted-foreground">
+                        {o.hint}
+                      </span>
                     </span>
                   </label>
-                ))}
-              </fieldset>
+                );
+              })}
+            </fieldset>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="employee">Pracownik</Label>
-                <Select
-                  id="employee"
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  required
-                >
-                  <option value="">Wybierz z listy…</option>
-                  {employees?.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.full_name} – {e.position}, {e.unit}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+            <div className="mt-1 flex flex-col gap-4">
+              <label htmlFor="employee" className="text-base font-black">
+                Pracownik
+              </label>
+              <EmployeeCombobox
+                id="employee"
+                employees={employees ?? []}
+                value={employeeId}
+                invalid={!!error && !employeeId}
+                onChange={(value) => {
+                  setEmployeeId(value);
+                  setError(null);
+                }}
+              />
+            </div>
 
-              {error && <Alert variant="danger">{error}</Alert>}
+            {error && <Alert variant="danger">{error}</Alert>}
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={busy}>
-                  {busy ? "Tworzenie…" : "Rozpocznij ocenę"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => router.back()}>
-                  Anuluj
-                </Button>
-              </div>
-            </form>
-          </CardContent>
+            <div className="flex items-center gap-2 pt-2">
+              <Button type="submit" disabled={busy}>
+                {busy ? "Tworzenie…" : "Rozpocznij ocenę"}
+                <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => router.back()}>
+                Anuluj
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card className="flex w-80 shrink-0 flex-col gap-3.5 p-6">
+          <h2 className="text-base font-black">Jak przebiega ocena</h2>
+          <ol className="flex flex-col gap-3.5">
+            {FLOW.map(([title, hint], i) => (
+              <li key={title} className="flex items-start gap-3">
+                <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-black text-primary">
+                  {i + 1}
+                </span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-sm font-bold">{title}</span>
+                  <span className="text-xs font-medium leading-[17px] text-muted-foreground">{hint}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
         </Card>
       </div>
     </>

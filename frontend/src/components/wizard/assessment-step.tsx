@@ -1,14 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label, Textarea } from "@/components/ui/form";
+import { Card } from "@/components/ui/card";
+import { CheckDot, RadioDot } from "@/components/ui/choice";
+import { Textarea } from "@/components/ui/form";
 import { api, type LevelValue, type Rating } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { StepProps } from "./types";
 
 type Choice = LevelValue | "none";
+
+const SHORTCUTS = [
+  ["1–5", "poziom"],
+  ["0", "brak podstaw"],
+  ["N", "następny"],
+  ["P", "poprzedni"],
+] as const;
 
 export function AssessmentStep({ process, competencies, onProcess, goTo }: StepProps) {
   const items = useMemo(
@@ -91,7 +102,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
     return (
       <Alert variant="warning">
         Nie wybrano kryteriów.{" "}
-        <button className="underline" onClick={() => goTo("criteria")}>
+        <button className="font-bold text-primary underline" onClick={() => goTo("criteria")}>
           Wróć do wyboru kryteriów
         </button>
       </Alert>
@@ -108,142 +119,196 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
   const groupName = `indicator-${item.indicator.id}`;
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]">
-      <nav aria-label="Wskaźniki do oceny" className="text-sm">
-        <p className="mb-2 font-medium" aria-live="polite">
-          Ocenione: {answered} z {items.length}
+    <div className="flex items-start gap-5">
+      <Card className="sticky top-6 flex w-[250px] shrink-0 flex-col gap-1.5 px-4 pb-4 pt-5">
+        <nav aria-label="Wskaźniki do oceny">
+          <p className="flex items-center px-1 text-sm" aria-live="polite">
+            <span className="flex-1 font-bold">Ocenione</span>
+            <span className="font-black text-primary">
+              {answered} z {items.length}
+            </span>
+          </p>
+          <div className="px-1 pb-2 pt-1.5">
+            <div
+              className="h-1.5 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-label="Postęp oceny"
+              aria-valuemin={0}
+              aria-valuemax={items.length}
+              aria-valuenow={answered}
+            >
+              <div
+                className="h-full rounded-full bg-brand-gradient"
+                style={{ width: `${(answered / items.length) * 100}%` }}
+              />
+            </div>
+          </div>
+          <ol className="flex max-h-[calc(100vh-12rem)] flex-col gap-1.5 overflow-y-auto">
+            {items.map((it, i) => {
+              const r = ratings.get(it.indicator.id);
+              const current = i === index;
+              const showHeader = i === 0 || items[i - 1].competency.id !== it.competency.id;
+              return (
+                <li key={it.indicator.id}>
+                  {showHeader && (
+                    <p className="pb-0.5 pl-1.5 pt-2.5 text-[13px] font-bold text-muted-foreground">
+                      {it.competency.name}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIndex(i)}
+                    aria-current={current ? "step" : undefined}
+                    className={cn(
+                      "flex w-full items-start gap-2.5 rounded-md px-2 py-[9px] text-left text-[13px] leading-[18px] transition-colors",
+                      current ? "bg-primary-soft font-bold text-primary" : "font-medium hover:bg-muted",
+                    )}
+                  >
+                    {r ? (
+                      <CheckDot />
+                    ) : (
+                      <span aria-hidden className="size-[18px] shrink-0 rounded-full border-2 border-border-strong" />
+                    )}
+                    <span className="line-clamp-3">
+                      {it.indicator.name}
+                      <span className="sr-only">
+                        {r ? (r.level ? `, oceniono: ${r.level}` : ", brak podstaw") : ", nieocenione"}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      </Card>
+
+      <Card className="flex min-w-0 flex-1 flex-col gap-4 p-7">
+        <p className="flex items-center gap-2">
+          <Badge variant="solid" className="px-2.5 py-[3px] text-xs">
+            {item.competency.name}
+          </Badge>
+          <span className="text-[13px] font-bold text-muted-foreground">
+            Wskaźnik {index + 1} z {items.length}
+          </span>
         </p>
-        <div
-          className="mb-3 h-2 rounded-sm bg-muted"
-          role="progressbar"
-          aria-label="Postęp oceny"
-          aria-valuemin={0}
-          aria-valuemax={items.length}
-          aria-valuenow={answered}
-        >
-          <div
-            className="h-2 rounded-sm bg-primary"
-            style={{ width: `${(answered / items.length) * 100}%` }}
-          />
-        </div>
-        <ol className="flex max-h-48 xl:max-h-[60vh] flex-col gap-0.5 overflow-y-auto pr-1">
-          {items.map((it, i) => {
-            const r = ratings.get(it.indicator.id);
-            const showHeader = i === 0 || items[i - 1].competency.id !== it.competency.id;
-            return (
-              <li key={it.indicator.id}>
-                {showHeader && (
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {it.competency.name}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIndex(i)}
-                  aria-current={i === index ? "step" : undefined}
+
+        <fieldset ref={fieldsetRef} tabIndex={-1} className="flex flex-col gap-4 outline-none">
+          <legend className="text-[19px] font-black leading-[26px]">{item.indicator.name}</legend>
+          <p className="text-sm font-medium leading-5 text-muted-foreground">
+            Wybierz opis, który najlepiej oddaje zachowanie pracownika zaobserwowane w ocenianym okresie.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {item.indicator.levels.map((l) => {
+              const checked = choice === l.level;
+              return (
+                <label
+                  key={l.level}
                   className={cn(
-                    "flex w-full items-start gap-2 rounded-sm px-2 py-1 text-left hover:bg-muted",
-                    i === index && "bg-primary-soft",
+                    "flex cursor-pointer items-center gap-3.5 rounded-lg py-3.5 pl-3.5 pr-4 transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
+                    checked ? "border-2 border-primary bg-primary-soft" : "border bg-card hover:border-primary-light",
                   )}
                 >
-                  <span aria-hidden className="w-4 shrink-0 text-center">
-                    {r ? (r.level ? r.level : "–") : "○"}
+                  <input
+                    type="radio"
+                    name={groupName}
+                    checked={checked}
+                    onChange={() => save(l.level, example)}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex size-[38px] shrink-0 items-center justify-center rounded-lg text-base font-black",
+                      checked ? "bg-primary text-primary-foreground" : "bg-primary-soft text-primary",
+                    )}
+                  >
+                    {l.level}
                   </span>
-                  <span className="line-clamp-2">
-                    {it.indicator.name}
-                    <span className="sr-only">
-                      {r ? (r.level ? `, oceniono: ${r.level}` : ", brak podstaw") : ", nieocenione"}
+                  <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                    <span className={cn("text-sm leading-5", checked ? "font-bold" : "font-medium")}>
+                      {l.description}
+                    </span>
+                    <span className={cn("text-xs font-bold leading-4", checked ? "text-primary" : "text-muted-foreground")}>
+                      {l.label}
                     </span>
                   </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
-
-      <div className="flex max-w-3xl flex-col gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {item.competency.name} · wskaźnik {index + 1} z {items.length}
-          </p>
-          <p className="mt-1 text-sm">
-            Wybierz opis, który najlepiej oddaje zachowanie pracownika zaobserwowane w ocenianym
-            okresie.
-          </p>
-        </div>
-
-        <fieldset ref={fieldsetRef} tabIndex={-1} className="flex flex-col gap-2 outline-none">
-          <legend className="mb-3 text-base font-semibold">{item.indicator.name}</legend>
-          {item.indicator.levels.map((l) => (
+                  <RadioDot checked={checked} />
+                </label>
+              );
+            })}
             <label
-              key={l.level}
-              className="flex cursor-pointer items-start gap-3 rounded-md border bg-card p-3 hover:border-border-strong has-[:checked]:border-primary has-[:checked]:bg-primary-soft"
+              className={cn(
+                "flex cursor-pointer items-center gap-3.5 rounded-lg border border-dashed py-3.5 pl-3.5 pr-4 transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
+                choice === "none" ? "border-primary bg-muted" : "bg-subtle hover:border-primary-light",
+              )}
             >
               <input
                 type="radio"
                 name={groupName}
-                checked={choice === l.level}
-                onChange={() => save(l.level, example)}
-                className="mt-1"
+                checked={choice === "none"}
+                onChange={() => save("none", example)}
+                className="sr-only"
               />
-              <span className="flex-1 text-sm">
-                <span className="block">{l.description}</span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {l.label}
+              <span
+                aria-hidden
+                className="flex size-[38px] shrink-0 items-center justify-center rounded-lg bg-muted text-base font-black text-muted-foreground"
+              >
+                0
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                <span className="text-sm font-bold leading-5">Brak podstaw do oceny</span>
+                <span className="text-xs font-medium leading-4 text-muted-foreground">
+                  Nie było okazji zaobserwować tego zachowania — wskaźnik nie wpłynie na sugerowany poziom.
                 </span>
               </span>
-              <kbd className="rounded-sm border px-1.5 font-mono text-xs text-muted-foreground" aria-hidden>
-                {l.level}
-              </kbd>
+              <RadioDot checked={choice === "none"} />
             </label>
-          ))}
-          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-dashed bg-card p-3 has-[:checked]:border-primary has-[:checked]:bg-muted">
-            <input
-              type="radio"
-              name={groupName}
-              checked={choice === "none"}
-              onChange={() => save("none", example)}
-              className="mt-1"
-            />
-            <span className="flex-1 text-sm">
-              <span className="block">Brak podstaw do oceny</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Nie było okazji zaobserwować tego zachowania – wskaźnik nie wpłynie na sugerowany poziom.
-              </span>
-            </span>
-            <kbd className="rounded-sm border px-1.5 font-mono text-xs text-muted-foreground" aria-hidden>
-              0
-            </kbd>
-          </label>
+          </div>
         </fieldset>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="example">Przykład zachowania (opcjonalnie)</Label>
+        <div className="flex flex-col gap-2 pt-1.5">
+          <label htmlFor="example" className="text-sm font-bold">
+            Przykład zachowania <span className="font-medium text-muted-foreground">(opcjonalnie)</span>
+          </label>
           <Textarea
             id="example"
-            rows={3}
             value={example}
             onChange={(e) => setExample(e.target.value)}
             onBlur={() => choice !== undefined && example !== (rating?.example ?? "") && save(choice, example)}
             placeholder="Konkretna sytuacja z ocenianego okresu, która uzasadnia wybór."
+            className="h-24"
           />
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <p className="text-xs text-muted-foreground">
-          Skróty: <kbd className="font-mono">1</kbd>–<kbd className="font-mono">5</kbd> wybór
-          poziomu, <kbd className="font-mono">0</kbd> brak podstaw, <kbd className="font-mono">N</kbd>{" "}
-          następny, <kbd className="font-mono">P</kbd> poprzedni (poza polem tekstowym).
+        <p className="flex flex-wrap items-center gap-3.5" aria-label="Skróty klawiszowe (poza polem tekstowym)">
+          {SHORTCUTS.map(([key, label]) => (
+            <span key={key} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <kbd className="rounded-[5px] border border-border-strong bg-muted px-1.5 py-0.5 font-sans text-[11px] font-bold text-foreground">
+                {key}
+              </kbd>
+              {label}
+            </span>
+          ))}
         </p>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2.5 pt-1">
           <Button variant="outline" onClick={() => move(-1)} disabled={index === 0}>
             Poprzedni wskaźnik
           </Button>
+          <span className="flex-1" />
+          {!isLast && answered === items.length && (
+            <Button variant="secondary" onClick={goToSummary}>
+              Wszystko ocenione — podsumowanie
+            </Button>
+          )}
           {!isLast ? (
-            <Button onClick={() => move(1)}>Następny wskaźnik</Button>
+            <Button onClick={() => move(1)}>
+              Następny wskaźnik
+              <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
+            </Button>
           ) : (
             <Button
               onClick={async () => {
@@ -253,21 +318,17 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
               disabled={answered === 0}
             >
               Dalej: podsumowanie
-            </Button>
-          )}
-          {!isLast && answered === items.length && (
-            <Button variant="secondary" onClick={goToSummary}>
-              Wszystko ocenione – przejdź do podsumowania
+              <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
             </Button>
           )}
         </div>
         {isLast && answered < items.length && (
-          <p className="text-sm text-muted-foreground">
-            Nieocenione wskaźniki ({items.length - answered}) zostaną pominięte w wyliczeniu
-            sugerowanego poziomu.
+          <p className="text-[13px] font-medium text-muted-foreground">
+            Nieocenione wskaźniki ({items.length - answered}) zostaną pominięte w wyliczeniu sugerowanego
+            poziomu.
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

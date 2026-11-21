@@ -2,14 +2,14 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const alertVariants = cva("rounded-md border px-4 py-3 text-sm", {
+const alertVariants = cva("rounded-lg border px-4 py-3.5 text-sm leading-[21px]", {
   variants: {
     variant: {
       default: "bg-card",
-      info: "border-transparent bg-primary-soft",
-      warning: "border-warning/40 bg-warning-soft text-warning",
-      danger: "border-destructive/40 bg-danger-soft text-destructive",
-      success: "border-success/40 bg-success-soft text-success",
+      info: "border-transparent bg-primary-soft text-foreground",
+      warning: "border-transparent bg-warning-soft text-foreground",
+      danger: "border-destructive/30 bg-danger-soft text-destructive",
+      success: "border-success/30 bg-success-soft text-success",
     },
   },
   defaultVariants: { variant: "default" },
@@ -24,7 +24,7 @@ function Alert({
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"p">) {
-  return <p className={cn("mb-1 font-semibold", className)} {...props} />;
+  return <p className={cn("mb-1 font-bold", className)} {...props} />;
 }
 
 export { Alert, AlertTitle };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/form";
@@ -72,57 +73,62 @@ export function AssistantChat({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col gap-[18px]">
       {allowModeSwitch && (
-        <div role="group" aria-label="Tryb asystenta" className="mb-3 flex gap-1">
+        <div role="group" aria-label="Tryb asystenta" className="flex gap-1 rounded-lg bg-muted p-1">
           {(Object.keys(MODE_LABELS) as ChatMode[]).map((m) => (
-            <Button
+            <button
               key={m}
               type="button"
-              size="sm"
-              variant={mode === m ? "default" : "outline"}
               aria-pressed={mode === m}
               onClick={() => setMode(m)}
+              className={cn(
+                "flex-1 rounded-md px-3 py-2 text-[13px] font-bold transition-colors",
+                mode === m ? "bg-card text-primary shadow-card" : "text-muted-foreground hover:text-foreground",
+              )}
             >
               {MODE_LABELS[m]}
-            </Button>
+            </button>
           ))}
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" aria-live="polite">
         {messages.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            <p className="mb-2">
-              Asystent odpowiada wyłącznie na podstawie bazy wiedzy (ustawa, rozporządzenia, poradniki,
-              model kompetencji) i wskazuje źródła. Gdy nie zna odpowiedzi – mówi o tym wprost.
+          <div className="flex flex-col gap-[18px]">
+            <p className="rounded-lg bg-primary-soft px-4 py-3.5 text-[13px] font-medium leading-[19px]">
+              Odpowiadam wyłącznie na podstawie bazy wiedzy: ustawy, rozporządzeń, poradników i modelu
+              kompetencji. Zawsze wskazuję źródło, a gdy nie znam odpowiedzi — mówię o tym wprost.
             </p>
-            <p className="mb-1">Przykładowe pytania:</p>
-            <ul className="flex flex-col gap-1">
-              {EXAMPLES[mode].map((ex) => (
-                <li key={ex}>
-                  <button
-                    type="button"
-                    className="text-left text-primary underline underline-offset-2 hover:no-underline"
-                    onClick={() => ask(ex)}
-                  >
-                    {ex}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col gap-2.5">
+              <p className="text-sm font-bold">Przykładowe pytania</p>
+              <ul className="flex flex-col gap-2.5">
+                {EXAMPLES[mode].map((ex) => (
+                  <li key={ex}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2.5 rounded-lg border py-3 pl-3.5 pr-3 text-left text-[13px] font-bold leading-[18px] text-primary transition-colors hover:border-primary-light hover:bg-primary-soft"
+                      onClick={() => ask(ex)}
+                    >
+                      <span className="flex-1">{ex}</span>
+                      <ArrowRight aria-hidden absoluteStrokeWidth strokeWidth={2} className="size-4 shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         ) : (
           <ol ref={listRef} className="flex flex-col gap-4">
             {messages.map((m) => (
               <li key={m.id} className="flex flex-col gap-2">
-                <p className="self-end rounded-md bg-primary-soft px-3 py-2 text-sm">
+                <p className="max-w-[90%] self-end rounded-lg rounded-br-sm bg-primary px-3 py-2 text-[13px] font-medium text-primary-foreground">
                   <span className="sr-only">Pytanie: </span>
                   {m.question}
                 </p>
                 {m.error && <Alert variant="danger">{m.error}</Alert>}
                 {!m.response && !m.error && (
-                  <p className="text-sm text-muted-foreground">Szukam w źródłach…</p>
+                  <p className="text-[13px] text-muted-foreground">Szukam w źródłach…</p>
                 )}
                 {m.response && <Answer id={m.id} res={m.response} compact={compact} />}
               </li>
@@ -132,7 +138,7 @@ export function AssistantChat({
       </div>
 
       <form
-        className="mt-3 flex flex-col gap-2 border-t pt-3"
+        className="flex flex-col gap-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           ask(question);
@@ -141,7 +147,7 @@ export function AssistantChat({
         <Label htmlFor={inputId}>Twoje pytanie</Label>
         <Textarea
           id={inputId}
-          rows={compact ? 2 : 3}
+          rows={3}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
@@ -152,13 +158,15 @@ export function AssistantChat({
           }}
           placeholder="Np. kiedy należy przeprowadzić rozmowę oceniającą?"
           aria-describedby={`${inputId}-hint`}
+          className="min-h-24 resize-none border-border bg-muted text-[13px] leading-[19px]"
         />
         <div className="flex items-center justify-between gap-2">
-          <span id={`${inputId}-hint`} className="text-xs text-muted-foreground">
-            Enter – wyślij, Shift+Enter – nowa linia
+          <span id={`${inputId}-hint`} title="Shift+Enter — nowa linia" className="text-[11px] font-medium text-muted-foreground">
+            Enter — wyślij
           </span>
-          <Button type="submit" size="sm" disabled={busy || !question.trim()}>
-            Zapytaj
+          <Button type="submit" disabled={busy || !question.trim()}>
+            {busy ? "Szukam…" : "Zapytaj"}
+            <ArrowRight aria-hidden absoluteStrokeWidth strokeWidth={2} />
           </Button>
         </div>
       </form>
@@ -183,13 +191,13 @@ function Answer({ id, res, compact }: { id: string; res: AskResponse; compact: b
     <div className="flex flex-col gap-2">
       {note && (
         <Alert variant={res.confidence === "none" ? "warning" : "info"}>
-          <span className="font-semibold">
+          <span className="font-bold">
             {res.confidence === "none" ? "Nie wiem. " : "Uwaga. "}
           </span>
           {note}
         </Alert>
       )}
-      <div className="whitespace-pre-line rounded-md border bg-card px-3 py-2 text-sm">
+      <div className="whitespace-pre-line rounded-lg border bg-card px-3.5 py-3 text-[13px] leading-[19px]">
         {parts.map((part, i) => {
           const cit = res.citations.find((c) => c.marker === part);
           if (!cit) return <span key={i}>{part}</span>;
@@ -208,7 +216,7 @@ function Answer({ id, res, compact }: { id: string; res: AskResponse; compact: b
       </div>
       {res.citations.length > 0 && (
         <div>
-          <p className="mb-1 text-xs font-medium text-muted-foreground">Źródła</p>
+          <p className="mb-1.5 text-xs font-bold text-muted-foreground">Źródła</p>
           <ul className="flex flex-col gap-1">
             {res.citations.map((c) => (
               <CitationItem
@@ -242,14 +250,14 @@ function CitationItem({
 }) {
   const isUrl = /^https?:\/\//.test(citation.path);
   return (
-    <li id={id} className={cn("rounded-md border text-sm", open && "border-primary")}>
+    <li id={id} className={cn("rounded-lg border text-[13px]", open && "border-primary")}>
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="flex w-full items-start gap-2 px-2 py-1.5 text-left hover:bg-muted"
+        className="flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-muted"
       >
-        <span className="font-medium text-primary">{citation.marker}</span>
+        <span className="font-black text-primary">{citation.marker}</span>
         <span className="flex-1">
           {citation.source}
           {citation.page != null && <span className="text-muted-foreground">, s. {citation.page}</span>}

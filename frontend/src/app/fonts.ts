@@ -1,8 +1,9 @@
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Lato } from "next/font/google";
 
-export const fontSans = IBM_Plex_Sans({
+// Lato on Google Fonts has no 500 weight, so the design's "Medium" renders as 400.
+export const fontSans = Lato({
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "700", "900"],
   variable: "--font-kk-sans",
   display: "swap",
 });
