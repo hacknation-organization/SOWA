@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kompas kompetencji – frontend
 
-## Getting Started
+Desktopowa aplikacja webowa (Next.js App Router + React + TypeScript + Tailwind v4 + komponenty w stylu shadcn/ui) wspierająca przełożonych w służbie cywilnej w pierwszej ocenie i ocenie okresowej (arkusze B/C).
 
-First, run the development server:
+## Uruchomienie
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikacja startuje pod http://localhost:3000. Inne skrypty:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Skrypt | Opis |
+| --- | --- |
+| `npm run build` | build produkcyjny |
+| `npm run lint` | ESLint |
+| `npm run build:mock-model` | regeneruje `src/lib/api/mock/competency-model.json` z `docs/HackNation/Model_kompetencji.xlsx` (szuka w katalogach nadrzędnych; ścieżkę można podać jako argument) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tryb mock vs API
 
-## Learn More
+- **Mock (domyślnie)** – gdy `NEXT_PUBLIC_API_URL` nie jest ustawione. Całe API działa w przeglądarce (`src/lib/api/mock/`), a stan zapisuje się w `localStorage` (klucz `kk.mock.v1`; usuń go, aby wrócić do danych początkowych). Logowanie: wybór roli demo albo login `przelozony` / `hr` / `admin` z dowolnym hasłem.
+- **API** – utwórz `.env.local`:
 
-To learn more about Next.js, take a look at the following resources:
+  ```
+  NEXT_PUBLIC_API_URL=http://localhost:8000
+  ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+  Klient (`src/lib/api/client.ts`) wywołuje endpointy z prefiksem `/api` i wysyła `Authorization: Bearer <access_token>`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Kontrakt i rozszerzenia
 
-## Deploy on Vercel
+Typy w `src/lib/api/types.ts` odpowiadają kontraktowi (`/auth/login`, `/competencies`, `/employees`, `/processes…`, `/hr/…`, `/assistant/ask`). Frontend używa dodatkowo:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `PATCH /api/processes/{id}` z polami `job_description`, `form`, `stage`, `interview_notes`, `development_plan` – zapis opisu stanowiska, wybór arkusza, przejście do kolejnego etapu, notatki z rozmowy i plan rozwoju.
+- W obiekcie procesu opcjonalnie: `employee_name`, `unit`, `status`, `deadline`, `competency_ids`, `ratings`, `reminder_sent_at`.
+- Identyfikatory kompetencji/wskaźników jak w imporcie backendu: `K01`, `K01-W1`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Co działa
+
+- Logowanie z wyborem roli demo; nawigacja i dostęp zależne od roli (HR/admin → monitoring).
+- Pulpit przełożonego: oceny w toku i zakończone, start pierwszej lub okresowej oceny.
+- Kreator oceny (`/oceny/[id]`), 6 kroków:
+  1. Opis stanowiska – wybór przykładowego OSP lub wklejenie treści, wybór arkusza B/C (z sugestią na podstawie OSP).
+  2. Kryteria – kryteria obowiązkowe arkusza zablokowane, maks. 3 dodatkowe, sugestie z OSP.
+  3. Ocena zachowań – jeden wskaźnik naraz, 5 opisów zachowań z modelu, „brak podstaw do oceny”, przykład; skróty `1`–`5`, `0`, `N`/`P`.
+  4. Podsumowanie – sugerowany poziom (mediana ocenionych wskaźników, remis → niższy) z wyjaśnieniem, decyzja przełożonego, wymagane uzasadnienie przy różnicy.
+  5. Rozmowa – asystent w trybie `interview` (pytania, tematy, plan rozwoju), notatki i plan rozwoju.
+  6. Dokument – tabela ocen i pobranie PDF.
+- Panel asystenta (tryb `formal`) z boku kreatora; cytaty jako odnośniki do rozwijanego fragmentu źródła; wyraźny komunikat przy `confidence: "none"`.
+- `/hr` – tabela procesów, filtry (status, komórka, rodzaj), terminy, zaznaczanie i wysyłka przypomnień.
+- `/asystent` – pełnoekranowy czat.
+- Poniżej 1024 px szerokości – komunikat, że aplikacja jest przeznaczona na komputer.
+
+## Zaślepki (tryb mock)
+
+- Asystent: dopasowanie słów kluczowych do kilku fragmentów (arkusze B/C, model kompetencji) – prawdziwy RAG dostarcza backend.
+- PDF: uproszczony dokument bez polskich znaków; docelowy arkusz zgodny ze wzorem generuje backend (`GET /processes/{id}/pdf`).
+- Przypomnienia HR: zapis daty wysyłki, bez faktycznej wysyłki.
+- Logowanie: bez weryfikacji hasła.
+
+## Struktura
+
+```
+scripts/build-mock-model.mjs   generator mocków modelu kompetencji (xlsx → JSON)
+src/
+  app/
+    fonts.ts                   jedyne miejsce ładowania krojów (next/font)
+    globals.css                mapowanie tokenów na zmienne shadcn/Tailwind
+    logowanie/                 wybór roli demo / formularz logowania
+    (app)/                     widoki po zalogowaniu (wspólny AppShell)
+      page.tsx                 pulpit przełożonego
+      oceny/nowa/              start oceny
+      oceny/[id]/              kreator oceny
+      hr/                      monitoring HR
+      asystent/                czat z asystentem
+  components/
+    ui/                        komponenty bazowe w stylu shadcn/ui
+    wizard/                    kroki kreatora
+    assistant-chat.tsx         czat z cytatami (używany w kreatorze i /asystent)
+    app-shell.tsx              układ, nawigacja, kontrola ról
+  lib/
+    api/                       typy, klient HTTP, mocki
+    domain.ts                  reguły: kryteria obowiązkowe B/C, punkty, mediana
+    osp-samples.ts             przykładowe OSP (skrót z materiałów organizatora)
+  styles/tokens.css            wszystkie tokeny wizualne (kolory, promienie, odstępy, kroje)
+```
+
+## Zmiana wyglądu
+
+Kierunek wizualny podmienia się w dwóch plikach: `src/styles/tokens.css` (kolory, promienie, odstępy, szerokości paneli) i `src/app/fonts.ts` (kroje). Komponenty używają wyłącznie klas opartych na tokenach.

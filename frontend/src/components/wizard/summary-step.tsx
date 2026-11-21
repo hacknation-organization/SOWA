@@ -51,6 +51,32 @@ export function SummaryStep({ process, competencies, onProcess, goTo }: StepProp
         />
       ))}
 
+      {missing.some((s) => s.suggested_level != null) && (
+        <div className="flex items-center gap-3 rounded-md border border-dashed p-3 text-sm">
+          <span className="flex-1">
+            Niezatwierdzone kompetencje: {missing.length}. Możesz przyjąć dla nich sugerowane poziomy
+            jednym kliknięciem – zmiany w pojedynczych kartach zapisuj przyciskiem „Zatwierdź poziom”.
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              let latest = data;
+              for (const s of missing) {
+                if (s.suggested_level == null) continue;
+                latest = await api.setDecision(process.id, s.competency_id, {
+                  level: s.suggested_level,
+                  justification: "",
+                });
+              }
+              setData(latest);
+            }}
+          >
+            Przyjmij sugerowane poziomy
+          </Button>
+        </div>
+      )}
+
       {stepError && missing.length > 0 && <Alert variant="danger">{stepError}</Alert>}
 
       <div className="flex gap-2">

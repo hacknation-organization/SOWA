@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl">
-      <body className={`${fontSans.variable} ${fontMono.variable} antialiased`}>
+    <html lang="pl" className={`${fontSans.variable} ${fontMono.variable}`}>
+      <body className="antialiased">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:bg-card focus:p-2"

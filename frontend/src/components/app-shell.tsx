@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside
-        className="flex shrink-0 flex-col border-r bg-card"
+        className="sticky top-0 flex h-screen shrink-0 flex-col border-r bg-card"
         style={{ width: "var(--kk-sidebar-width)" }}
       >
         <div className="border-b p-4">
