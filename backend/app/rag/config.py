@@ -1,0 +1,47 @@
+"""Konfiguracja modułu RAG (zmienne środowiskowe, bez zależności od ustawień backendu)."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_CORPUS_DIR = BACKEND_DIR / "data" / "corpus"
+
+
+def _env(name: str, default: str = "") -> str:
+    return os.environ.get(name, default).strip()
+
+
+@dataclass(frozen=True)
+class RagSettings:
+    corpus_dir: Path
+    gemini_api_key: str
+    gemini_model: str
+    gemini_embed_model: str
+    embed_dim: int
+    groq_api_key: str
+    groq_model: str
+    top_k: int
+    # próg pokrycia zapytania (ważony IDF) poniżej którego odmawiamy bez wywołania LLM
+    min_coverage: float
+    # próg podobieństwa cosinusowego embeddingów (gdy dostępne) – alternatywny warunek dopuszczenia
+    min_cosine: float
+    llm_timeout_s: float
+
+    @classmethod
+    def from_env(cls) -> "RagSettings":
+        return cls(
+            corpus_dir=Path(_env("RAG_CORPUS_DIR") or DEFAULT_CORPUS_DIR),
+            gemini_api_key=_env("GEMINI_API_KEY") or _env("GOOGLE_API_KEY"),
+            gemini_model=_env("RAG_GEMINI_MODEL", "gemini-2.5-flash"),
+            gemini_embed_model=_env("RAG_GEMINI_EMBED_MODEL", "gemini-embedding-001"),
+            embed_dim=int(_env("RAG_EMBED_DIM", "768")),
+            groq_api_key=_env("GROQ_API_KEY"),
+            groq_model=_env("RAG_GROQ_MODEL", "llama-3.3-70b-versatile"),
+            top_k=int(_env("RAG_TOP_K", "6")),
+            min_coverage=float(_env("RAG_MIN_COVERAGE", "0.55")),
+            min_cosine=float(_env("RAG_MIN_COSINE", "0.62")),
+            llm_timeout_s=float(_env("RAG_LLM_TIMEOUT", "40")),
+        )
