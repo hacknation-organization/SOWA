@@ -77,6 +77,9 @@ export interface Process {
   competency_ids?: string[];
   ratings?: Rating[];
   reminder_sent_at?: string | null;
+  /** Rozszerzenie: notatki z rozmowy i plan rozwoju (PATCH /processes/{id}). */
+  interview_notes?: string;
+  development_plan?: string;
 }
 
 export interface CreateProcessRequest {
@@ -136,6 +139,8 @@ export interface UpdateProcessRequest {
   job_description?: string;
   form?: FormType | null;
   stage?: ProcessStage;
+  interview_notes?: string;
+  development_plan?: string;
 }
 
 export const LEVEL_LABELS: Record<LevelValue, string> = {
