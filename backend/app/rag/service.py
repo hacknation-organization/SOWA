@@ -139,6 +139,29 @@ class RagService:
                     have.add(c["id"])
         return extra
 
+    def _plan_extra(self, ctx: dict | None, have: set[str]) -> list[dict]:
+        """Model chunks for the weakest rated indicators of the lowest-rated competencies."""
+        comps = [c for c in (ctx or {}).get("competencies", []) if isinstance(c, dict)]
+
+        def weakest_first(comp: dict) -> tuple[bool, int]:
+            level = comp.get("manager_level") or comp.get("suggested_level")
+            return (level is None, level or 0)
+
+        extra: list[dict] = []
+        for comp in sorted(comps, key=weakest_first)[:3]:
+            name_key = fold(str(comp.get("competency", "")))[:12]
+            rated = [i for i in comp.get("indicators", []) if isinstance(i, dict) and i.get("level")]
+            for ind in sorted(rated, key=lambda i: i["level"])[:2]:
+                needle = fold(str(ind.get("indicator", "")))[:40]
+                for c in self.retriever.chunks:
+                    if (needle and c["doc_type"] == "model" and c["id"] not in have
+                            and "wskaznik" in fold(c["path"]) and fold(c["path"]).startswith(name_key)
+                            and needle in fold(c["text"])):
+                        extra.append(c)
+                        have.add(c["id"])
+                        break
+        return extra
+
     def _decision_response(self, process: str | None) -> dict:
         hits = self.retriever.search("skala ocen cząstkowych punkty poziom oczekiwań przyznanie oceny",
                                      k=3, process=process, doc_types={"rozporzadzenie"})
@@ -160,11 +183,13 @@ class RagService:
     async def ask(self, question: str, mode: str, context: dict | None = None) -> dict:
         t0 = time.perf_counter()
         question = (question or "").strip()[:MAX_QUESTION_CHARS]
-        mode = "interview" if str(mode).lower().startswith("interview") else "formal"
+        raw_mode = str(mode).lower()
+        mode = "plan" if raw_mode.startswith("plan") else "interview" if raw_mode.startswith("interview") else "formal"
+        with_data = mode in ("interview", "plan")
         if not question:
             return _response("Proszę wpisać pytanie.")
         process = detect_process(question, context)
-        ctx = scrub_context(context) if mode == "interview" else None
+        ctx = scrub_context(context) if with_data else None
 
         if is_decision_request(question):
             res = self._decision_response(process)
@@ -178,7 +203,7 @@ class RagService:
             return _response(f"{NO_INFO_ANSWER} Rozporządzenia w bazie wiedzy nie zawierają {pars}.")
 
         query = question
-        if mode == "interview":
+        if with_data:
             query = f"{question} {context_terms(ctx)}".strip()
         qvec = await self._query_vec(query)
         hits: list[Hit] = self.retriever.search(query, k=self.settings.top_k, process=process, query_vec=qvec)
@@ -187,13 +212,13 @@ class RagService:
         if mode == "formal" and not enough:
             self._log(mode, "no_evidence", len(hits), t0)
             return _response(NO_INFO_ANSWER)
-        if mode == "interview" and not hits and not ctx:
+        if with_data and not hits and not ctx:
             return _response(NO_INFO_ANSWER)
 
         chunks = [h.chunk for h in hits]
-        if mode == "interview":
+        if with_data:
             have = {c["id"] for c in chunks}
-            extra = self._interview_extra(ctx, have, question)
+            extra = (self._plan_extra(ctx, have) if mode == "plan" else self._interview_extra(ctx, have, question))
             chunks = (extra + chunks)[:MAX_CONTEXT_CHUNKS]
 
         if self.llm is None:
@@ -232,7 +257,7 @@ class RagService:
     def _confidence(self, mode: str, status: str, coverage: float, cosine: float | None) -> str:
         if status != "ok":
             return "partial"
-        if mode == "interview":
+        if mode in ("interview", "plan"):
             return "high"
         strong = coverage >= HIGH_COVERAGE or (cosine or 0) >= self.settings.min_cosine + HIGH_COSINE_MARGIN
         return "high" if strong else "partial"

@@ -30,7 +30,7 @@ async def ask(body: AskRequest, session: SessionDep, user: CurrentUser) -> AskRe
     context: dict | None = None
     if body.process_id is not None:
         process = get_process_for_read(session, body.process_id, user)
-        if body.mode == "interview":
+        if body.mode in ("interview", "plan"):
             context = anonymized_context(session, process)
         else:
             context = {"process_id": process.id, "type": process.type, "form": process.form}

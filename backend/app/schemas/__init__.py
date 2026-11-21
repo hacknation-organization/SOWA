@@ -189,7 +189,7 @@ class ReminderResponse(BaseModel):
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
-    mode: Literal["formal", "interview"] = "formal"
+    mode: Literal["formal", "interview", "plan"] = "formal"
     process_id: int | None = None
 
 

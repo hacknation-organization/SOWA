@@ -183,6 +183,8 @@ def test_decision_requests_detected(q):
     "Jakie informacje o rozmowie wstępnej wpisuje się do arkusza pierwszej oceny?",
     "Kto przyznaje kolejny stopień służbowy?",
     "Pomóż mi uporządkować argumenty do rozmowy oceniającej",
+    "Zaproponuj 6–8 pytań do rozmowy oceniającej z pracownikiem na podstawie wyników oceny.",
+    "Zaproponuj tematy do omówienia z pracownikiem podczas rozmowy oceniającej",
 ])
 def test_rule_questions_not_treated_as_decisions(q):
     assert not is_decision_request(q)
