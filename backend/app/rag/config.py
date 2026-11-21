@@ -25,6 +25,13 @@ class RagSettings:
     embed_dim: int
     groq_api_key: str
     groq_model: str
+    llm_chain: str
+    anthropic_api_key: str
+    anthropic_effort: str
+    openai_api_key: str
+    openai_base_url: str
+    openrouter_api_key: str
+    ollama_base_url: str
     top_k: int
     min_coverage: float
     min_cosine: float
@@ -40,6 +47,13 @@ class RagSettings:
             embed_dim=int(_env("RAG_EMBED_DIM", "768")),
             groq_api_key=_env("GROQ_API_KEY"),
             groq_model=_env("RAG_GROQ_MODEL", "llama-3.3-70b-versatile"),
+            llm_chain=_env("RAG_LLM"),
+            anthropic_api_key=_env("ANTHROPIC_API_KEY"),
+            anthropic_effort=_env("RAG_ANTHROPIC_EFFORT"),
+            openai_api_key=_env("OPENAI_API_KEY"),
+            openai_base_url=_env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            openrouter_api_key=_env("OPENROUTER_API_KEY"),
+            ollama_base_url=_env("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
             top_k=int(_env("RAG_TOP_K", "6")),
             min_coverage=float(_env("RAG_MIN_COVERAGE", "0.55")),
             min_cosine=float(_env("RAG_MIN_COSINE", "0.62")),
