@@ -16,14 +16,16 @@ DECISION_REFUSAL = (
 )
 
 _ACT = r"(dac|dam|wystawic|wystawie|przyznac|przyznam|postawic|postawie|wpisac|wpisze|zaznaczyc|zaznacze|wybrac|wybiore)"
+# a grade ("ocena", "ocene", ...), not the evaluator or the appraisal interview ("oceniajacy", "oceniajacej")
+_GRADE = r"ocen(?!ia)\w*"
 _DECISION_PATTERNS = [
-    r"\b(jak\w*|ktor\w*|co|ile)\b.{0,40}\b(ocen\w*|poziom\w*|punkt\w*)\b.{0,40}\b" + _ACT + r"\b",
+    r"\b(jak\w*|ktor\w*|co|ile)\b.{0,40}\b(" + _GRADE + r"|poziom\w*|punkt\w*)\b.{0,40}\b" + _ACT + r"\b",
     r"\b" + _ACT + r"\b.{0,40}\b(mu|jej|pracownik\w*|podwladn\w*|kandydat\w*|temu|tej osobie)\b",
-    r"\b(przyznaj|wystaw|postaw|zdecyduj|rozstrzygnij)\b.{0,50}\b(pracownik\w*|podwladn\w*|ocen\w*|poziom\w*|jego|ja|go)\b",
+    r"\b(przyznaj|wystaw|postaw|zdecyduj|rozstrzygnij)\b.{0,50}\b(pracownik\w*|podwladn\w*|" + _GRADE + r"|poziom\w*|jego|ja|go)\b",
     r"\bocen\b (go|ja|tego|te|moj\w*|pracownik\w*|podwladn\w*)\b",
     r"\bczy\b.{0,60}\b(zasluguje|zasluzyl\w*|powinien dostac|powinna dostac|powinien otrzymac|powinna otrzymac|kwalifikuje sie)\b",
-    r"\b(zasugeruj|zaproponuj|podpowiedz|wskaz|powiedz)\b.{0,40}\b(ocen\w*|poziom\w*|punkt\w*)\b.{0,40}\b(dla|mu|jej|pracownik\w*|podwladn\w*|przyzna\w*|dac|wystaw\w*)\b",
-    r"\b(jak\w*|ktor\w*)\b.{0,30}\b(ocen\w*|poziom\w*)\b.{0,30}\b(powinien|powinna|powinno|nalezy sie|mam)\b",
+    r"\b(zasugeruj|zaproponuj|podpowiedz|wskaz|powiedz)\b.{0,40}\b(" + _GRADE + r"|poziom\w*|punkt\w*)\b.{0,40}\b(dla|mu|jej|pracownik\w*|podwladn\w*|przyzna\w*|dac|wystaw\w*)\b",
+    r"\b(jak\w*|ktor\w*)\b.{0,30}\b(" + _GRADE + r"|poziom\w*)\b.{0,30}\b(powinien|powinna|powinno|nalezy sie|mam)\b",
 ]
 _DECISION_RE = [re.compile(p) for p in _DECISION_PATTERNS]
 
@@ -116,7 +118,7 @@ def competency_names(context: dict | None) -> list[str]:
     names = []
     for comp in comps if isinstance(comps, list) else []:
         if isinstance(comp, dict):
-            name = comp.get("name") or comp.get("nazwa") or comp.get("kompetencja")
+            name = comp.get("name") or comp.get("nazwa") or comp.get("kompetencja") or comp.get("competency")
             if name:
                 names.append(str(name))
         elif isinstance(comp, str):

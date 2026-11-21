@@ -68,7 +68,7 @@ export function createHttpClient(baseUrl: string): ApiClient {
     const res = await fetch(root + path, { ...init, headers });
     if (!res.ok) {
       if (res.status === 401 && path !== "/auth/login") {
-        // Wygasła lub nieprawidłowa sesja (np. token z trybu mock): wyczyść i wróć do logowania.
+        // Expired or invalid session (e.g. a leftover mock token): clear it and go back to the login page.
         try {
           window.localStorage.removeItem(SESSION_STORAGE_KEY);
         } catch {}

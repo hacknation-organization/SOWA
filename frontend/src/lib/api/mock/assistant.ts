@@ -177,6 +177,37 @@ function interview(process: Process | undefined, model: Competency[]): AskRespon
   };
 }
 
+function developmentPlan(process: Process | undefined, model: Competency[]): AskResponse {
+  const ratings = (process?.ratings ?? []).filter((r) => r.level != null);
+  if (!process || !ratings.length) {
+    return {
+      answer: "Aby przygotować plan rozwoju, oceń najpierw wskaźniki behawioralne.",
+      citations: [],
+      confidence: "none",
+    };
+  }
+  const byId = new Map(model.flatMap((c) => c.indicators.map((i) => [i.id, { c, i }] as const)));
+  const weakest = [...ratings].sort((a, b) => (a.level ?? 0) - (b.level ?? 0)).slice(0, 2);
+  const blocks = weakest.flatMap((r) => {
+    const m = byId.get(r.indicator_id);
+    if (!m) return [];
+    const next = m.i.levels.find((l) => l.level === Math.min(5, (r.level ?? 3) + 1));
+    return [
+      [
+        `Priorytet: ${m.c.name}`,
+        `Punkt wyjścia: poziom „${LEVEL_LABELS[r.level!]}” we wskaźniku „${m.i.name}”.`,
+        `Cel: ${next?.description ?? ""}`,
+        "Działania:",
+        "- Zadanie rozwojowe w bieżącej pracy, z krótkim podsumowaniem po zakończeniu.",
+        "- Regularna informacja zwrotna od przełożonego raz na dwa tygodnie.",
+        "Termin i miara sukcesu: przegląd po 3 miesiącach, na podstawie obserwowanego zachowania docelowego.",
+      ].join("\n"),
+    ];
+  });
+  return { answer: blocks.join("\n\n"), citations: [], confidence: "partial" };
+}
+
 export function mockAsk(body: AskRequest, process: Process | undefined, model: Competency[]): AskResponse {
+  if (body.mode === "plan") return developmentPlan(process, model);
   return body.mode === "interview" ? interview(process, model) : formal(body.question);
 }

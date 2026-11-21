@@ -106,7 +106,8 @@ export interface HrProcessFilters {
   type?: ProcessType | "";
 }
 
-export type AssistantMode = "formal" | "interview";
+export type ChatMode = "formal" | "interview";
+export type AssistantMode = ChatMode | "plan";
 
 export interface AskRequest {
   question: string;

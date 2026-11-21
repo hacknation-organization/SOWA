@@ -4,23 +4,23 @@ import { useId, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/form";
-import { api, type AskResponse, type AssistantMode, type Citation } from "@/lib/api";
+import { api, type AskResponse, type ChatMode, type Citation } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface Message {
   id: string;
   question: string;
-  mode: AssistantMode;
+  mode: ChatMode;
   response?: AskResponse;
   error?: string;
 }
 
-const MODE_LABELS: Record<AssistantMode, string> = {
+const MODE_LABELS: Record<ChatMode, string> = {
   formal: "Zasady i przepisy",
   interview: "Przygotowanie rozmowy",
 };
 
-const EXAMPLES: Record<AssistantMode, string[]> = {
+const EXAMPLES: Record<ChatMode, string[]> = {
   formal: [
     "Jakie są kryteria obowiązkowe w arkuszu C?",
     "Ile punktów daje poziom „powyżej oczekiwań”?",
@@ -37,12 +37,12 @@ export function AssistantChat({
   onAnswer,
 }: {
   processId?: string;
-  defaultMode?: AssistantMode;
+  defaultMode?: ChatMode;
   allowModeSwitch?: boolean;
   compact?: boolean;
   onAnswer?: (res: AskResponse) => void;
 }) {
-  const [mode, setMode] = useState<AssistantMode>(defaultMode);
+  const [mode, setMode] = useState<ChatMode>(defaultMode);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
@@ -75,7 +75,7 @@ export function AssistantChat({
     <div className="flex h-full min-h-0 flex-col">
       {allowModeSwitch && (
         <div role="group" aria-label="Tryb asystenta" className="mb-3 flex gap-1">
-          {(Object.keys(MODE_LABELS) as AssistantMode[]).map((m) => (
+          {(Object.keys(MODE_LABELS) as ChatMode[]).map((m) => (
             <Button
               key={m}
               type="button"
