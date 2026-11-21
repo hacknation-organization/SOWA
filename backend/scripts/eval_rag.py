@@ -1,19 +1,3 @@
-"""Ewaluacja asystenta RAG na zestawie data/corpus/qa_eval.jsonl.
-
-Użycie (z katalogu backend/):
-    python scripts/eval_rag.py              # pełny pipeline (z LLM, jeśli ustawiono klucz)
-    python scripts/eval_rag.py --no-llm     # tylko retrieval + progi odmowy (bez sieci)
-    python scripts/eval_rag.py --sweep      # dodatkowo przegląd progu pokrycia (RAG_MIN_COVERAGE)
-
-Metryki:
-- trafność retrievalu: odsetek pytań z odpowiedzią, dla których oczekiwane źródło jest wśród
-  fragmentów przekazanych do LLM (hit@k), oraz MRR,
-- poprawne odmowy: pytania spoza bazy / o nieistniejące przepisy -> komunikat o braku informacji;
-  prośby o decyzję -> odmowa wskazania oceny,
-- fałszywe odmowy: pytania z odpowiedzią w bazie, na które system odmówił,
-- poprawność cytatów: odsetek cytatów wskazujących oczekiwany dokument (lub dokument + jednostkę).
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -32,7 +16,7 @@ from app.rag.config import RagSettings  # noqa: E402
 from app.rag.guards import DECISION_REFUSAL, NO_INFO_ANSWER, context_terms, scrub_context  # noqa: E402
 from app.rag.llm import GeminiClient, build_llm  # noqa: E402
 from app.rag.retrieval import Retriever, detect_process  # noqa: E402
-from app.rag.service import RagService  # noqa: E402
+from app.rag.service import MAX_CONTEXT_CHUNKS, RagService  # noqa: E402
 from app.rag.textutil import fold  # noqa: E402
 
 
@@ -50,6 +34,11 @@ def matches(chunk: dict, exp: dict, strict: bool = True) -> bool:
     if chunk["source_id"] != exp["source_id"]:
         return False
     return path_match(chunk["path"], exp.get("path", "")) if strict else True
+
+
+def load_eval_items(settings: RagSettings) -> list[dict]:
+    lines = (settings.corpus_dir / "qa_eval.jsonl").read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
 
 
 def classify(res: dict) -> str:
@@ -73,12 +62,11 @@ async def run(args) -> None:
     for c in retriever.chunks:
         by_title.setdefault((c["source"], c["path"]), c)
 
-    items = [json.loads(x) for x in (settings.corpus_dir / "qa_eval.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    items = load_eval_items(settings)
     rows = []
     for it in items:
         t0 = time.perf_counter()
         ctx = it.get("context")
-        # retrieval (te same fragmenty, które dostaje LLM)
         q = it["question"]
         query = q if it["mode"] == "formal" else f"{q} {context_terms(scrub_context(ctx))}"
         qvec = await svc._query_vec(query)
@@ -86,7 +74,7 @@ async def run(args) -> None:
         chunks = [h.chunk for h in hits]
         if it["mode"] == "interview":
             have = {c["id"] for c in chunks}
-            chunks = (svc._interview_extra(scrub_context(ctx), have, q) + chunks)[:8]
+            chunks = (svc._interview_extra(scrub_context(ctx), have, q) + chunks)[:MAX_CONTEXT_CHUNKS]
         rank = None
         for i, c in enumerate(chunks, 1):
             if any(matches(c, e) for e in it["expected_sources"]):
@@ -107,7 +95,7 @@ async def run(args) -> None:
             "ms": int((time.perf_counter() - t0) * 1000),
         })
         if llm is not None and args.delay:
-            await asyncio.sleep(args.delay)  # limit zapytań free tier
+            await asyncio.sleep(args.delay)
 
     report = summarize(rows, settings, llm, embedder, args)
     print(report["text"])
@@ -188,7 +176,7 @@ async def sweep(args) -> list[tuple]:
     out = []
     settings = RagSettings.from_env()
     retriever = Retriever.from_dir(settings.corpus_dir)
-    items = [json.loads(x) for x in (settings.corpus_dir / "qa_eval.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    items = load_eval_items(settings)
     for t in [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]:
         svc = RagService(retriever, None, None, dataclasses.replace(settings, min_coverage=t))
         ok = fr = n_no = n_ans = 0

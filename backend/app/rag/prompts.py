@@ -1,5 +1,3 @@
-"""Prompty asystenta. Treść fragmentów i kontekstu jest wstawiana jako DANE w oznaczonych sekcjach."""
-
 from __future__ import annotations
 
 import json

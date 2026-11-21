@@ -1,5 +1,3 @@
-"""Ekstrakcja tekstu z plików korpusu (PDF, XLSX, DOCX) i rejestr źródeł."""
-
 from __future__ import annotations
 
 import re
@@ -9,24 +7,20 @@ from pathlib import Path
 from .chunking import (SourceInfo, chunk_competency_model, chunk_form, chunk_guide,
                        chunk_legal_act)
 
-# Rejestr źródeł: ścieżka względem katalogu docs/HackNation -> metadane.
-# Rozporządzenie o ocenach okresowych występuje w paczce dwukrotnie: kopia „(3)” to pełny akt
-# (19 stron), kopia „(4)” (folder OSP) to tylko 3-stronicowy wyciąg z załącznika nr 1
-# z nakładką znaku wodnego – nie jest indeksowana, bo jej treść zawiera się w kopii „(3)”.
 SOURCES: list[tuple[str, SourceInfo]] = [
     ("Pierwsza ocena w służbie cywilnej/Rozporządzenie o pierwszej ocenie z 2015 r. (1).pdf",
      SourceInfo("rozp_pierwsza_2015",
                 "Rozporządzenie Prezesa Rady Ministrów z dnia 23 lipca 2015 r. w sprawie szczegółowych "
                 "warunków i sposobu dokonywania pierwszej oceny w służbie cywilnej (Dz. U. poz. 1144)",
                 "Rozporządzenie o pierwszej ocenie (2015)", "rozporzadzenie", "pierwsza",
-                skip_appendices={"2"})),  # zał. 2 = arkusz pierwszej oceny – indeksowany z .docx
+                skip_appendices={"2"})),
     ("Ocena okresowa w służbie cywilnej/Rozporządzenie o ocenach okresowych z 2016 r. (3).pdf",
      SourceInfo("rozp_okresowa_2016",
                 "Rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu "
                 "przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej "
                 "(Dz. U. poz. 470)",
                 "Rozporządzenie o ocenach okresowych (2016)", "rozporzadzenie", "okresowa",
-                skip_appendices={"3", "4"})),  # zał. 3–4 = arkusze B i C – indeksowane z .docx
+                skip_appendices={"3", "4"})),
     ("Pierwsza ocena w służbie cywilnej/Pierwsza ocena w służbie cywilnej - poradnik z 2016 r. (1).pdf",
      SourceInfo("poradnik_pierwsza_2016",
                 "Poradnik KPRM „Pierwsza ocena w służbie cywilnej” (Departament Służby Cywilnej, wrzesień 2016)",
@@ -48,6 +42,10 @@ SOURCES: list[tuple[str, SourceInfo]] = [
      SourceInfo("arkusz_C", "Wzór arkusza oceny okresowej C (zał. nr 4 do rozporządzenia z 2016 r.)",
                 "Arkusz oceny okresowej C", "formularz", "okresowa")),
 ]
+
+
+def _squash_ws(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
 
 
 def read_pdf_pages(path: Path) -> list[tuple[int, str]]:
@@ -72,7 +70,7 @@ def read_competency_model(path: Path) -> tuple[list[list[str]], list[dict]]:
         cells: list[str] = []
         for c in row:
             v = "" if c is None else str(c).strip()
-            if v and (not cells or cells[-1] != v):  # komórki scalone powtarzają wartość
+            if v and (not cells or cells[-1] != v):
                 cells.append(v)
         if cells:
             main_rows.append(cells)
@@ -81,18 +79,17 @@ def read_competency_model(path: Path) -> tuple[list[list[str]], list[dict]]:
         rows = [[("" if c is None else str(c).strip()) for c in row] for row in ws.iter_rows(values_only=True)]
         name = next((r[0] for r in rows if r and r[0]), ws.title)
         hdr_idx = next(i for i, r in enumerate(rows) if r and r[0].lower().startswith("wskaźnik"))
-        levels = [x for x in rows[hdr_idx][1:6]]
-        inds = []
-        for r in rows[hdr_idx + 1:]:
-            if r and r[0]:
-                inds.append({"name": re.sub(r"\s+", " ", r[0]), "levels": [re.sub(r"\s+", " ", x) for x in r[1:6]]})
+        levels = rows[hdr_idx][1:6]
+        inds = [
+            {"name": _squash_ws(r[0]), "levels": [_squash_ws(x) for x in r[1:6]]}
+            for r in rows[hdr_idx + 1:]
+            if r and r[0]
+        ]
         comps.append({"name": name, "levels": levels, "indicators": inds})
     return main_rows, comps
 
 
 def read_docx_blocks(path: Path) -> tuple[list[str], dict[str, str]]:
-    """Zwraca akapity i wiersze tabel w kolejności dokumentu (wiersz = komórki rozdzielone „ | ”)
-    oraz treść przypisów; odwołania do przypisów zastępowane są znacznikiem „(przypis N)”."""
     import docx
     from docx.oxml.ns import qn
 
@@ -104,8 +101,8 @@ def read_docx_blocks(path: Path) -> tuple[list[str], dict[str, str]]:
             elif x.tag == qn("w:footnoteReference"):
                 parts.append(f" (przypis {x.get(qn('w:id'))})")
         t = "".join(parts)
-        t = re.sub(r"\(przypis (\d+)\)\s*\)", r"(przypis \1)", t)  # „Stanowisko pracy(przypis 2))” -> bez „)”
-        return re.sub(r"\s+", " ", t).strip()
+        t = re.sub(r"\(przypis (\d+)\)\s*\)", r"(przypis \1)", t)
+        return _squash_ws(t).strip()
 
     d = docx.Document(str(path))
     blocks: list[str] = []
@@ -132,7 +129,7 @@ def read_docx_blocks(path: Path) -> tuple[list[str], dict[str, str]]:
                 txt = "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", body)).strip()
                 txt = re.sub(r"^\)\s*", "", txt)
                 if txt:
-                    footnotes[fid] = re.sub(r"\s+", " ", txt)
+                    footnotes[fid] = _squash_ws(txt)
     return blocks, footnotes
 
 
@@ -144,23 +141,20 @@ def build_chunks(docs_root: Path, report: list[str] | None = None) -> list[dict]
         if not path.exists():
             report.append(f"BRAK PLIKU: {rel}")
             continue
-        if path.suffix.lower() == ".pdf":
+        suffix = path.suffix.lower()
+        if suffix == ".pdf":
             pages = read_pdf_pages(path)
             if not pdf_has_text_layer(pages):
                 report.append(f"UWAGA: {rel} wygląda na skan bez warstwy tekstu – pominięto (wymaga OCR)")
                 continue
-            if src.doc_type == "rozporzadzenie":
-                cs = chunk_legal_act(src, pages)
-            else:
-                cs = chunk_guide(src, pages)
-        elif path.suffix.lower() == ".xlsx":
-            main_rows, comps = read_competency_model(path)
-            cs = chunk_competency_model(src, main_rows, comps)
-        elif path.suffix.lower() == ".docx":
-            blocks, notes = read_docx_blocks(path)
-            cs = chunk_form(src, blocks, notes)
+            chunker = chunk_legal_act if src.doc_type == "rozporzadzenie" else chunk_guide
+            source_chunks = chunker(src, pages)
+        elif suffix == ".xlsx":
+            source_chunks = chunk_competency_model(src, *read_competency_model(path))
+        elif suffix == ".docx":
+            source_chunks = chunk_form(src, *read_docx_blocks(path))
         else:
             continue
-        report.append(f"{src.source_id}: {len(cs)} chunków ({rel})")
-        chunks.extend(cs)
+        report.append(f"{src.source_id}: {len(source_chunks)} chunków ({rel})")
+        chunks.extend(source_chunks)
     return chunks
