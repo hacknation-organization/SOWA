@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Mapowanie tokenów na nazwy zmiennych shadcn/ui. */
+:root {
+  --background: var(--kk-color-bg);
+  --foreground: var(--kk-color-text);
+  --card: var(--kk-color-surface);
+  --card-foreground: var(--kk-color-text);
+  --popover: var(--kk-color-surface);
+  --popover-foreground: var(--kk-color-text);
+  --primary: var(--kk-color-primary);
+  --primary-foreground: var(--kk-color-primary-fg);
+  --secondary: var(--kk-color-surface-muted);
+  --secondary-foreground: var(--kk-color-text);
+  --muted: var(--kk-color-surface-muted);
+  --muted-foreground: var(--kk-color-text-muted);
+  --accent: var(--kk-color-primary-soft);
+  --accent-foreground: var(--kk-color-text);
+  --destructive: var(--kk-color-danger);
+  --border: var(--kk-color-border);
+  --input: var(--kk-color-border-strong);
+  --ring: var(--kk-color-focus);
+  --radius: var(--kk-radius-md);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--kk-color-primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-danger-soft: var(--kk-color-danger-soft);
+  --color-warning: var(--kk-color-warning);
+  --color-warning-soft: var(--kk-color-warning-soft);
+  --color-success: var(--kk-color-success);
+  --color-success-soft: var(--kk-color-success-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--kk-color-border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--kk-radius-sm);
+  --radius-md: var(--kk-radius-md);
+  --radius-lg: var(--kk-radius-lg);
+
+  --font-sans: var(--kk-font-sans);
+  --font-mono: var(--kk-font-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--kk-font-sans);
+  }
+  :focus-visible {
+    outline: var(--kk-focus-width) solid var(--kk-color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Komunikat dla ekranów węższych niż 1024 px – aplikacja tylko na komputer. */
+.kk-desktop-only {
+  display: contents;
+}
+.kk-narrow-notice {
+  display: none;
+}
+@media (max-width: 1023.98px) {
+  .kk-desktop-only {
+    display: none;
+  }
+  .kk-narrow-notice {
+    display: flex;
+  }
+}
