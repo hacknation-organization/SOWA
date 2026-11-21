@@ -1,5 +1,3 @@
-"""Generowanie arkusza oceny w PDF (reportlab, osadzona czcionka DejaVu Sans)."""
-
 from datetime import date
 from io import BytesIO
 from pathlib import Path
@@ -12,16 +10,43 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlmodel import Session
 
 from app.domain.competency_model import get_competency_model
 from app.domain.scoring import LEVEL_LABELS
-from app.models import Employee, Process, User
+from app.models import Employee, Process, Rating, User
+from app.schemas import SummaryItem
 from app.services import processes as svc
 
 FONT_DIR = Path(__file__).parent / "fonts"
 FONT, FONT_BOLD = "DejaVuSans", "DejaVuSans-Bold"
+GRID_COLOR = colors.HexColor("#9aa4b2")
+HEADER_BACKGROUND = colors.HexColor("#e8edf3")
+SIGNATURE_LINE = "...................................."
+FOOTNOTE = (
+    "Poziom sugerowany wyliczono automatycznie jako medianę ocen wskaźników behawioralnych "
+    "(z pominięciem „brak podstaw do oceny”, przy remisie – wartość niższa). Ostateczny poziom "
+    "ustala przełożony. Dokument wygenerowany w aplikacji Kompas kompetencji (prototyp)."
+)
+
+HEADER_ROW_STYLE = TableStyle(
+    [
+        ("GRID", (0, 0), (-1, -1), 0.4, GRID_COLOR),
+        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BACKGROUND),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]
+)
+HEADER_COLUMN_STYLE = TableStyle(
+    [
+        ("GRID", (0, 0), (-1, -1), 0.4, GRID_COLOR),
+        ("BACKGROUND", (0, 0), (0, -1), HEADER_BACKGROUND),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]
+)
+
 _fonts_registered = False
 
 
@@ -60,70 +85,34 @@ def _fmt_date(d: date | None) -> str:
     return d.strftime("%d.%m.%Y") if d else "—"
 
 
-TABLE_STYLE = TableStyle(
-    [
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9aa4b2")),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8edf3")),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-    ]
-)
+def _table(rows: list[list[Flowable]], col_widths_mm: list[float], style: TableStyle, **kwargs) -> Table:
+    table = Table(rows, colWidths=[width * mm for width in col_widths_mm], **kwargs)
+    table.setStyle(style)
+    return table
 
 
-def render_process_pdf(session: Session, process: Process) -> bytes:
-    _register_fonts()
-    st = _styles()
-    model = get_competency_model()
-    employee = session.get(Employee, process.employee_id)
-    manager = session.get(User, process.manager_id)
-    summary = svc.summary(session, process)
-    ratings = svc.ratings_for(session, process.id)
-
+def _title(process: Process) -> str:
     if process.type == "first":
-        title = "ARKUSZ PIERWSZEJ OCENY"
-    else:
-        title = f"ARKUSZ OCENY OKRESOWEJ – {process.form or ''}".strip(" –")
+        return "ARKUSZ PIERWSZEJ OCENY"
+    return f"ARKUSZ OCENY OKRESOWEJ – {process.form or ''}".strip(" –")
 
-    story: list = [_p(title, st["title"]), Spacer(1, 3 * mm)]
 
-    info = [
-        [
-            _p("Imię i nazwisko ocenianego", st["cellb"]),
-            _p(f"{employee.first_name} {employee.last_name}", st["cell"]),
-        ],
-        [_p("Stanowisko", st["cellb"]), _p(employee.position, st["cell"])],
-        [_p("Komórka organizacyjna", st["cellb"]), _p(employee.unit, st["cell"])],
-        [
-            _p("Oceniający (bezpośredni przełożony)", st["cellb"]),
-            _p(manager.display_name if manager else "", st["cell"]),
-        ],
-        [
-            _p("Okres objęty oceną", st["cellb"]),
-            _p(f"{_fmt_date(process.period_start)} – {_fmt_date(process.period_end)}", st["cell"]),
-        ],
-        [_p("Termin sporządzenia oceny", st["cellb"]), _p(_fmt_date(process.deadline), st["cell"])],
+def _info_table(process: Process, employee: Employee, manager: User | None, st: dict) -> Table:
+    fields = [
+        ("Imię i nazwisko ocenianego", f"{employee.first_name} {employee.last_name}"),
+        ("Stanowisko", employee.position),
+        ("Komórka organizacyjna", employee.unit),
+        ("Oceniający (bezpośredni przełożony)", manager.display_name if manager else ""),
+        ("Okres objęty oceną", f"{_fmt_date(process.period_start)} – {_fmt_date(process.period_end)}"),
+        ("Termin sporządzenia oceny", _fmt_date(process.deadline)),
     ]
-    t = Table(info, colWidths=[60 * mm, 110 * mm])
-    t.setStyle(
-        TableStyle(
-            [
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9aa4b2")),
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#e8edf3")),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ]
-        )
-    )
-    story += [t]
+    rows = [[_p(label, st["cellb"]), _p(value, st["cell"])] for label, value in fields]
+    return _table(rows, [60, 110], HEADER_COLUMN_STYLE)
 
-    if process.job_description:
-        story += [_p("Zadania na stanowisku (na podstawie opisu stanowiska pracy)", st["h2"])]
-        story += [_p(process.job_description, st["body"])]
 
-    story += [_p("Wyniki oceny w zakresie kryteriów (kompetencji)", st["h2"])]
-    rows = [
-        [_p(h, st["cellb"]) for h in ("Kompetencja", "Poziom sugerowany", "Poziom ustalony", "Uzasadnienie")]
-    ]
+def _summary_section(summary: list[SummaryItem], st: dict) -> list[Flowable]:
+    headers = ("Kompetencja", "Poziom sugerowany", "Poziom ustalony", "Uzasadnienie")
+    rows = [[_p(header, st["cellb"]) for header in headers]]
     for item in summary:
         rows.append(
             [
@@ -133,62 +122,90 @@ def render_process_pdf(session: Session, process: Process) -> bytes:
                 _p(item.justification, st["cell"]),
             ]
         )
-    t = Table(rows, colWidths=[45 * mm, 35 * mm, 35 * mm, 55 * mm], repeatRows=1)
-    t.setStyle(TABLE_STYLE)
-    story += [t]
+    return [
+        _p("Wyniki oceny w zakresie kryteriów (kompetencji)", st["h2"]),
+        _table(rows, [45, 35, 35, 55], HEADER_ROW_STYLE, repeatRows=1),
+    ]
 
-    story += [_p("Ocena wskaźników behawioralnych", st["h2"])]
+
+def _indicator_row(indicator: dict, rating: Rating | None, st: dict) -> list[Flowable]:
+    if rating is None:
+        return [_p(indicator["name"], st["cell"]), _p("nie oceniono", st["cell"]), _p("", st["cell"])]
+    behaviour = indicator["levels"][rating.level - 1]["description"] if rating.level else ""
+    text = behaviour + (f"\nPrzykład: {rating.example}" if rating.example else "")
+    return [_p(indicator["name"], st["cell"]), _p(_level(rating.level), st["cell"]), _p(text, st["cell"])]
+
+
+def _indicators_section(summary: list[SummaryItem], ratings: list[Rating], st: dict) -> list[Flowable]:
+    model = get_competency_model()
+    story: list[Flowable] = [_p("Ocena wskaźników behawioralnych", st["h2"])]
     for item in summary:
-        comp = model.competency(item.competency_id)
+        competency = model.competency(item.competency_id)
+        by_indicator = {r.indicator_id: r for r in ratings if r.competency_id == item.competency_id}
+        headers = ("Wskaźnik", "Poziom", "Obserwowane zachowanie / przykład")
+        rows = [[_p(header, st["cellb"]) for header in headers]]
+        rows += [
+            _indicator_row(indicator, by_indicator.get(indicator["id"]), st)
+            for indicator in competency["indicators"]
+        ]
         story += [
             _p(f"{item.competency_name} – ocenione {item.rated}/{item.total}", st["cellb"]),
             Spacer(1, 1 * mm),
+            _table(rows, [55, 30, 85], HEADER_ROW_STYLE, repeatRows=1),
+            _p(item.explanation, st["small"]),
+            Spacer(1, 3 * mm),
         ]
-        rows = [[_p(h, st["cellb"]) for h in ("Wskaźnik", "Poziom", "Obserwowane zachowanie / przykład")]]
-        by_indicator = {r.indicator_id: r for r in ratings if r.competency_id == item.competency_id}
-        for ind in comp["indicators"]:
-            r = by_indicator.get(ind["id"])
-            if r is None:
-                rows.append([_p(ind["name"], st["cell"]), _p("nie oceniono", st["cell"]), _p("", st["cell"])])
-                continue
-            behaviour = ind["levels"][r.level - 1]["description"] if r.level else ""
-            text = behaviour + (f"\nPrzykład: {r.example}" if r.example else "")
-            rows.append([_p(ind["name"], st["cell"]), _p(_level(r.level), st["cell"]), _p(text, st["cell"])])
-        t = Table(rows, colWidths=[55 * mm, 30 * mm, 85 * mm], repeatRows=1)
-        t.setStyle(TABLE_STYLE)
-        story += [t, _p(item.explanation, st["small"]), Spacer(1, 3 * mm)]
+    return story
 
-    story += [_p("Rozmowa oceniająca", st["h2"])]
-    story += [_p(f"Data rozmowy: {_fmt_date(process.interview_date)}", st["body"])]
+
+def _interview_section(process: Process, st: dict) -> list[Flowable]:
+    story: list[Flowable] = [
+        _p("Rozmowa oceniająca", st["h2"]),
+        _p(f"Data rozmowy: {_fmt_date(process.interview_date)}", st["body"]),
+    ]
     if process.interview_notes:
-        story += [_p(process.interview_notes, st["body"])]
+        story.append(_p(process.interview_notes, st["body"]))
     story += [
         _p("Wskazówki dotyczące rozwoju zawodowego", st["h2"]),
         _p(process.development_plan, st["body"]),
     ]
+    return story
 
-    story += [Spacer(1, 12 * mm)]
-    sign = Table(
+
+def _signature_section(st: dict) -> list[Flowable]:
+    signature = Table(
         [
-            [
-                _p("....................................", st["cell"]),
-                _p("....................................", st["cell"]),
-            ],
+            [_p(SIGNATURE_LINE, st["cell"]), _p(SIGNATURE_LINE, st["cell"])],
             [_p("data i podpis oceniającego", st["small"]), _p("data i podpis ocenianego", st["small"])],
         ],
         colWidths=[85 * mm, 85 * mm],
     )
-    story += [sign, Spacer(1, 8 * mm)]
-    story += [
-        _p(
-            "Poziom sugerowany wyliczono automatycznie jako medianę ocen wskaźników behawioralnych "
-            "(z pominięciem „brak podstaw do oceny”, przy remisie – wartość niższa). Ostateczny poziom "
-            "ustala przełożony. Dokument wygenerowany w aplikacji Kompas kompetencji (prototyp).",
-            st["small"],
-        )
-    ]
+    return [Spacer(1, 12 * mm), signature, Spacer(1, 8 * mm), _p(FOOTNOTE, st["small"])]
 
-    buf = BytesIO()
+
+def render_process_pdf(session: Session, process: Process) -> bytes:
+    _register_fonts()
+    st = _styles()
+    employee = session.get(Employee, process.employee_id)
+    manager = session.get(User, process.manager_id)
+    summary = svc.summary(session, process)
+    ratings = svc.ratings_for(session, process.id)
+    title = _title(process)
+
+    story: list[Flowable] = [
+        _p(title, st["title"]),
+        Spacer(1, 3 * mm),
+        _info_table(process, employee, manager, st),
+    ]
+    if process.job_description:
+        story += [
+            _p("Zadania na stanowisku (na podstawie opisu stanowiska pracy)", st["h2"]),
+            _p(process.job_description, st["body"]),
+        ]
+    story += _summary_section(summary, st)
+    story += _indicators_section(summary, ratings, st)
+    story += _interview_section(process, st)
+    story += _signature_section(st)
 
     def footer(canvas, doc):
         canvas.saveState()
@@ -196,8 +213,9 @@ def render_process_pdf(session: Session, process: Process) -> bytes:
         canvas.drawRightString(A4[0] - 15 * mm, 10 * mm, f"Proces nr {process.id} · strona {doc.page}")
         canvas.restoreState()
 
+    buffer = BytesIO()
     doc = SimpleDocTemplate(
-        buf,
+        buffer,
         pagesize=A4,
         leftMargin=20 * mm,
         rightMargin=20 * mm,
@@ -207,4 +225,4 @@ def render_process_pdf(session: Session, process: Process) -> bytes:
         author="Kompas kompetencji",
     )
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
-    return buf.getvalue()
+    return buffer.getvalue()

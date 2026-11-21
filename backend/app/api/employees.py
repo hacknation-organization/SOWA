@@ -10,7 +10,6 @@ router = APIRouter(prefix="/employees", tags=["pracownicy"])
 
 @router.get("", response_model=list[EmployeeOut])
 def list_employees(session: SessionDep, user: CurrentUser) -> list[Employee]:
-    """Przełożony widzi swoich podwładnych; HR i admin – wszystkich."""
     query = select(Employee).order_by(Employee.last_name, Employee.first_name)
     if user.role == "przelozony":
         query = query.where(Employee.manager_id == user.id)

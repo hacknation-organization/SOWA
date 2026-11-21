@@ -1,5 +1,3 @@
-"""Dostęp do modelu kompetencji (backend/data/competency_model.json)."""
-
 import json
 from functools import lru_cache
 
@@ -8,7 +6,6 @@ from app.core.config import get_settings
 
 class CompetencyModel:
     def __init__(self, data: dict):
-        self.data = data
         self.competencies: list[dict] = data["competencies"]
         self.by_id = {c["id"]: c for c in self.competencies}
         self.indicator_index: dict[str, tuple[dict, dict]] = {

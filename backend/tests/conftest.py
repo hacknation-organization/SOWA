@@ -16,7 +16,7 @@ def client():
     db.set_engine(engine)
     from app.main import app
 
-    with TestClient(app) as c:  # lifespan ładuje dane demo do świeżej bazy
+    with TestClient(app) as c:
         yield c
     db.set_engine(None)
 

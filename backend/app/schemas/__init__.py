@@ -1,5 +1,3 @@
-"""Schematy Pydantic – kontrakt API dla frontendu."""
-
 from datetime import date, datetime
 from typing import Literal
 
@@ -10,10 +8,8 @@ ProcessType = Literal["first", "periodic"]
 FormType = Literal["B", "C"]
 Stage = Literal["job_description", "criteria", "assessment", "summary", "interview", "document"]
 Status = Literal["in_progress", "completed"]
-Level = int
 
 
-# --- auth -----------------------------------------------------------------
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -35,7 +31,6 @@ class UserOut(BaseModel):
     unit: str | None = None
 
 
-# --- model kompetencji ------------------------------------------------------
 class LevelDescription(BaseModel):
     level: int = Field(ge=1, le=5)
     label: str
@@ -54,7 +49,6 @@ class CompetencyOut(BaseModel):
     indicators: list[IndicatorOut]
 
 
-# --- pracownicy -------------------------------------------------------------
 class EmployeeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -64,7 +58,6 @@ class EmployeeOut(BaseModel):
     unit: str
 
 
-# --- procesy ----------------------------------------------------------------
 class ProcessCreate(BaseModel):
     employee_id: int
     type: ProcessType
@@ -88,6 +81,7 @@ class ProcessListItem(BaseModel):
 
 
 class RatingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     indicator_id: str
     competency_id: str
     level: int | None
@@ -95,6 +89,7 @@ class RatingOut(BaseModel):
 
 
 class DecisionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     competency_id: str
     level: int
     suggested_level: int | None
@@ -117,8 +112,6 @@ class ProcessDetail(ProcessListItem):
 
 
 class ProcessUpdate(BaseModel):
-    """Częściowa aktualizacja procesu (etap, opis stanowiska, rozmowa, plan rozwoju)."""
-
     stage: Stage | None = None
     status: Status | None = None
     job_description: str | None = None
@@ -157,7 +150,6 @@ class DecisionUpdate(BaseModel):
     justification: str | None = Field(default=None, max_length=4000)
 
 
-# --- HR ---------------------------------------------------------------------
 class HrProcessItem(BaseModel):
     id: int
     employee_name: str
@@ -194,7 +186,6 @@ class ReminderResponse(BaseModel):
     reminders: list[ReminderOut]
 
 
-# --- asystent ---------------------------------------------------------------
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     mode: Literal["formal", "interview"] = "formal"

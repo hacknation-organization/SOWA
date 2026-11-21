@@ -1,11 +1,3 @@
-"""Deterministyczne wyliczanie sugerowanego poziomu kompetencji.
-
-Zasada: AI nigdy nie decyduje o poziomie oceny. Sugerowany poziom to mediana poziomów
-ocenionych wskaźników behawioralnych; wskaźniki z „brakiem podstaw do oceny” (None) są
-pomijane. Przy parzystej liczbie ocen (remis dwóch środkowych wartości) wybierana jest
-niższa z nich – tak, by sugestia nie zawyżała oceny.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -38,12 +30,6 @@ def lower_median(values: Iterable[int]) -> int | None:
 
 
 def suggest_level(levels: list[int | None], total: int | None = None) -> Suggestion:
-    """Liczy sugestię dla jednej kompetencji.
-
-    levels – poziomy (1–5) wskaźników, None = brak podstaw do oceny.
-    total – liczba wszystkich wskaźników kompetencji (nieocenione jeszcze też się liczą);
-            domyślnie len(levels).
-    """
     for lvl in levels:
         if lvl is not None and lvl not in LEVEL_LABELS:
             raise ValueError(f"Nieprawidłowy poziom: {lvl!r}")
