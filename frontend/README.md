@@ -26,7 +26,7 @@ Aplikacja startuje pod http://localhost:3000. Inne skrypty:
   NEXT_PUBLIC_API_URL=http://localhost:8000
   ```
 
-  Klient (`src/lib/api/client.ts`) wywołuje endpointy z prefiksem `/api` i wysyła `Authorization: Bearer <access_token>`.
+  Klient (`src/lib/api/client.ts`) wywołuje endpointy z prefiksem `/api` i wysyła `Authorization: Bearer <access_token>`. Odpowiedzi backendu (np. `employee` jako obiekt, liczbowe `id`, `criteria`, `overdue`) są mapowane na typy z `types.ts` w samym kliencie. Hasło kont demo backendu: `demo123`.
 
 ### Kontrakt i rozszerzenia
 

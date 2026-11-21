@@ -74,7 +74,13 @@ def update_process(
     process_id: int, body: ProcessUpdate, session: SessionDep, user: CurrentUser
 ) -> ProcessDetail:
     process = get_process_for_write(session, process_id, user)
-    for key, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    form = changes.get("form", process.form)
+    if error := validate_type_form(process.type, form, changes.get("stage") or process.stage):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, error)
+    if changes.get("stage") == "document":
+        changes.setdefault("status", "completed")
+    for key, value in changes.items():
         setattr(process, key, value)
     _touch(session, process)
     session.commit()
