@@ -87,8 +87,13 @@ Uwagi do korpusu:
 
 | zmienna | domyślnie | opis |
 |---|---|---|
+| `RAG_LLM` | – (= `gemini,groq`) | łańcuch `dostawca:model` po przecinku, np. `anthropic:claude-opus-5-5,groq`; dostawcy: `gemini`, `anthropic`, `groq`, `openai`, `openrouter`, `ollama` |
 | `GEMINI_API_KEY` (lub `GOOGLE_API_KEY`) | – | generacja i embeddingi (free tier AI Studio) |
-| `GROQ_API_KEY` | – | zapasowy LLM |
+| `GROQ_API_KEY` | – | Groq (free tier) |
+| `ANTHROPIC_API_KEY` | – | Claude (domyślny model `claude-opus-5-5`); `RAG_ANTHROPIC_EFFORT` ustawia effort |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL` | –, `https://api.openai.com/v1` | OpenAI lub inny serwer zgodny z API OpenAI (model trzeba podać) |
+| `OPENROUTER_API_KEY` | – | OpenRouter, w tym darmowe modele `…:free` (model trzeba podać) |
+| `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | lokalna Ollama, bez klucza (model trzeba podać) |
 | `RAG_GEMINI_MODEL` | `gemini-3.5-flash` | model generacji |
 | `RAG_GEMINI_EMBED_MODEL` | `gemini-embedding-001` | model embeddingów (po zmianie przebuduj indeks) |
 | `RAG_EMBED_DIM` | `768` | wymiar embeddingów |
