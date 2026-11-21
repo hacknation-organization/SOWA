@@ -93,10 +93,12 @@ function summary(p: Process): CompetencySummary[] {
     if (suggested == null) {
       explanation = "Brak ocenionych wskaźników – nie można wyliczyć sugerowanego poziomu.";
     } else {
-      const sorted = [...rated].sort((a, b) => a - b).join(", ");
+      const asc = [...rated].sort((a, b) => a - b);
+      const sorted = asc.join(", ");
+      const tie = asc.length % 2 === 0 && asc[asc.length / 2 - 1] !== asc[asc.length / 2];
       explanation =
         `Mediana z ${rated.length} ocenionych wskaźników (${sorted}) = ${suggested} – „${LEVEL_LABELS[suggested]}”.` +
-        (rated.length % 2 === 0 && rated.length > 1 ? " Przy remisie dwóch środkowych wartości wybrano niższą." : "") +
+        (tie ? " Przy remisie dwóch środkowych wartości wybrano niższą." : "") +
         (noBasis ? ` Pominięto ${noBasis} wskaźn. z oznaczeniem „brak podstaw do oceny”.` : "") +
         (missing ? ` ${missing} wskaźn. nie oceniono.` : "");
     }

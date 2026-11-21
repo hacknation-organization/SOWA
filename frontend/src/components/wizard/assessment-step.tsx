@@ -105,7 +105,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
   const groupName = `indicator-${item.indicator.id}`;
 
   return (
-    <div className="grid grid-cols-[16rem_minmax(0,1fr)] gap-6">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]">
       <nav aria-label="Wskaźniki do oceny" className="text-sm">
         <p className="mb-2 font-medium" aria-live="polite">
           Ocenione: {answered} z {items.length}
@@ -123,7 +123,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
             style={{ width: `${(answered / items.length) * 100}%` }}
           />
         </div>
-        <ol className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto pr-1">
+        <ol className="flex max-h-48 xl:max-h-[60vh] flex-col gap-0.5 overflow-y-auto pr-1">
           {items.map((it, i) => {
             const r = ratings.get(it.indicator.id);
             const showHeader = i === 0 || items[i - 1].competency.id !== it.competency.id;

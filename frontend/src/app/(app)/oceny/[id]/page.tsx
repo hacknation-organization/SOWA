@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AssistantChat } from "@/components/assistant-chat";
 import { Deadline, StatusBadge } from "@/components/process-badges";
 import { Alert } from "@/components/ui/alert";
@@ -41,7 +41,12 @@ export default function WizardPage() {
     [id],
   );
   const [step, setStep] = useState<ProcessStage | null>(null);
-  const [assistantOpen, setAssistantOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Panel asystenta domyślnie otwarty tylko na szerokich ekranach.
+  useEffect(() => {
+    if (window.innerWidth >= 1440) setAssistantOpen(true);
+  }, []);
 
   if (loading && !data) return <p className="p-8 text-muted-foreground">Ładowanie oceny…</p>;
   if (error || !data)

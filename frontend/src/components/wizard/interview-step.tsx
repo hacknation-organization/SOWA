@@ -11,9 +11,9 @@ import type { StepProps } from "./types";
 
 /** Wyciąga sekcję „plan rozwoju” z odpowiedzi asystenta (jeśli występuje). */
 function extractPlan(answer: string): string {
-  const idx = answer.toLowerCase().indexOf("plan rozwoju");
-  if (idx === -1) return answer;
-  return answer.slice(answer.indexOf("\n", idx) + 1).trim();
+  const match = /plan\p{L}* rozwoju[^\n]*\n/iu.exec(answer);
+  if (!match) return answer;
+  return answer.slice(match.index + match[0].length).trim();
 }
 
 export function InterviewStep({ process, onProcess, goTo }: StepProps) {
