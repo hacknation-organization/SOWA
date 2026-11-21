@@ -1,5 +1,3 @@
-// Typy zgodne z kontraktem API (prefiks /api).
-
 export type Role = "przelozony" | "hr" | "admin";
 
 export interface LoginRequest {
@@ -38,7 +36,6 @@ export interface Employee {
   full_name: string;
   position: string;
   unit: string;
-  /** Data zatrudnienia w służbie cywilnej (ISO). */
   hired_at?: string;
 }
 
@@ -77,7 +74,6 @@ export interface Process {
   competency_ids?: string[];
   ratings?: Rating[];
   reminder_sent_at?: string | null;
-  /** Rozszerzenie: notatki z rozmowy i plan rozwoju (PATCH /processes/{id}). */
   interview_notes?: string;
   development_plan?: string;
 }
@@ -134,7 +130,6 @@ export interface AskResponse {
   confidence: Confidence;
 }
 
-/** Pola procesu, które frontend zapisuje na etapie opisu stanowiska. */
 export interface UpdateProcessRequest {
   job_description?: string;
   form?: FormType | null;

@@ -14,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, TYPE_LABELS } from "@/lib/api";
+import { api, TYPE_LABELS, type Process } from "@/lib/api";
+import { assessmentPath, newAssessmentPath } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
 
 export default function DashboardPage() {
@@ -40,7 +41,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/oceny/nowa?typ=first">Rozpocznij pierwszą ocenę</Link>
+                <Link href={newAssessmentPath("first")}>Rozpocznij pierwszą ocenę</Link>
               </Button>
             </CardContent>
           </Card>
@@ -51,7 +52,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/oceny/nowa?typ=periodic">Rozpocznij ocenę okresową</Link>
+                <Link href={newAssessmentPath("periodic")}>Rozpocznij ocenę okresową</Link>
               </Button>
             </CardContent>
           </Card>
@@ -85,7 +86,7 @@ function ProcessTable({
   processes,
   empty,
 }: {
-  processes: import("@/lib/api").Process[];
+  processes: Process[];
   empty: string;
 }) {
   if (processes.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
@@ -121,7 +122,7 @@ function ProcessTable({
               </TableCell>
               <TableCell className="text-right">
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`/oceny/${p.id}`}>
+                  <Link href={assessmentPath(p.id)}>
                     {p.status === "completed" ? "Otwórz" : "Kontynuuj"}
                     <span className="sr-only"> ocenę: {p.employee_name}</span>
                   </Link>

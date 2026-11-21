@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { api, API_MODE, LEVEL_LABELS } from "@/lib/api";
 import { LEVEL_POINTS } from "@/lib/domain";
+import { ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
 import type { StepProps } from "./types";
 
@@ -102,7 +103,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
           {busy ? "Generowanie…" : "Pobierz PDF"}
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/">Wróć do pulpitu</Link>
+          <Link href={ROUTES.dashboard}>Wróć do pulpitu</Link>
         </Button>
       </div>
     </div>

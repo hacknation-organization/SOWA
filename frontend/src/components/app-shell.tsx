@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { API_MODE, type Role } from "@/lib/api";
 import { ROLE_LABELS, homeFor, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -15,16 +16,15 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Pulpit", roles: ["przelozony", "admin"] },
-  { href: "/oceny/nowa", label: "Nowa ocena", roles: ["przelozony", "admin"] },
-  { href: "/hr", label: "Monitoring ocen", roles: ["hr", "admin"] },
-  { href: "/asystent", label: "Asystent", roles: ["przelozony", "hr", "admin"] },
+  { href: ROUTES.dashboard, label: "Pulpit", roles: ["przelozony", "admin"] },
+  { href: ROUTES.newAssessment, label: "Nowa ocena", roles: ["przelozony", "admin"] },
+  { href: ROUTES.hr, label: "Monitoring ocen", roles: ["hr", "admin"] },
+  { href: ROUTES.assistant, label: "Asystent", roles: ["przelozony", "hr", "admin"] },
 ];
 
-/** Strony wymagające konkretnej roli (prefiks ścieżki → dozwolone role). */
 const GUARDS: { prefix: string; roles: Role[] }[] = [
-  { prefix: "/hr", roles: ["hr", "admin"] },
-  { prefix: "/oceny", roles: ["przelozony", "admin"] },
+  { prefix: ROUTES.hr, roles: ["hr", "admin"] },
+  { prefix: ROUTES.assessments, roles: ["przelozony", "admin"] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -33,16 +33,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const guard = GUARDS.find((g) => pathname.startsWith(g.prefix));
-  const forbidden =
-    !!session &&
-    ((guard && !guard.roles.includes(session.role)) ||
-      (pathname === "/" && session.role === "hr"));
+  const hrOnDashboard = session?.role === "hr" && pathname === ROUTES.dashboard;
+  const forbidden = !!session && ((guard && !guard.roles.includes(session.role)) || hrOnDashboard);
 
   useEffect(() => {
     if (!ready) return;
-    if (!session) router.replace("/logowanie");
-    else if (pathname === "/" && session.role === "hr") router.replace(homeFor(session.role));
-  }, [ready, session, pathname, router]);
+    if (!session) router.replace(ROUTES.login);
+    else if (hrOnDashboard) router.replace(homeFor(session.role));
+  }, [ready, session, hrOnDashboard, router]);
 
   if (!ready || !session) {
     return <p className="p-8 text-muted-foreground">Ładowanie…</p>;
@@ -50,7 +48,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const items = NAV.filter((n) => n.roles.includes(session.role));
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+    href === ROUTES.dashboard
+      ? pathname === ROUTES.dashboard
+      : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <div className="flex min-h-screen">
@@ -89,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="w-full"
             onClick={() => {
               logout();
-              router.replace("/logowanie");
+              router.replace(ROUTES.login);
             }}
           >
             Wyloguj

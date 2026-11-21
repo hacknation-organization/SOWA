@@ -1,4 +1,3 @@
-// Dane demonstracyjne trybu mock. Osoby są fikcyjne.
 import type { Employee, Process, Role } from "../types";
 
 export const DEMO_USERS: Record<string, { role: Role; display_name: string }> = {

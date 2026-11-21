@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Label } from "@/components/ui/form";
 import { Alert } from "@/components/ui/alert";
 
+const DEMO_PASSWORD = "demo";
+
 const DEMO_ROLES: { role: Role; description: string }[] = [
   { role: "przelozony", description: "Prowadzi oceny swoich pracowników krok po kroku." },
   { role: "hr", description: "Monitoruje statusy i terminy ocen, wysyła przypomnienia." },
@@ -19,7 +21,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState("przelozony");
-  const [password, setPassword] = useState("demo");
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -56,7 +58,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => submit(role, "demo")}
+                      onClick={() => submit(role, DEMO_PASSWORD)}
                       className="w-full rounded-md border p-3 text-left hover:bg-muted disabled:opacity-50"
                     >
                       <span className="block font-medium">{ROLE_LABELS[role]}</span>

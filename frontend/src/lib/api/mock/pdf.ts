@@ -1,16 +1,14 @@
-// Zaślepka PDF: minimalny, poprawny plik PDF z tekstem podsumowania.
-// Standardowa czcionka Helvetica nie ma polskich znaków, więc tekst jest transliterowany.
-// Docelowy arkusz (B/C / pierwsza ocena) generuje backend: GET /processes/{id}/pdf.
-
-const PL: Record<string, string> = {
+const TRANSLITERATION: Record<string, string> = {
   ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z",
   Ą: "A", Ć: "C", Ę: "E", Ł: "L", Ń: "N", Ó: "O", Ś: "S", Ź: "Z", Ż: "Z",
   "„": '"', "”": '"', "–": "-", "—": "-", "…": "...", "•": "-", "’": "'",
 };
 
+const LINES_PER_PAGE = 52;
+
 function ascii(text: string): string {
   return text
-    .replace(/[^\x20-\x7E]/g, (ch) => PL[ch] ?? "?")
+    .replace(/[^\x20-\x7E]/g, (ch) => TRANSLITERATION[ch] ?? "?")
     .replace(/[\\()]/g, (ch) => `\\${ch}`);
 }
 
@@ -30,13 +28,11 @@ function wrap(line: string, width = 95): string[] {
 
 export function buildPdf(lines: string[]): Blob {
   const all = lines.flatMap((l) => wrap(l));
-  const perPage = 52;
   const pages: string[][] = [];
-  for (let i = 0; i < all.length; i += perPage) pages.push(all.slice(i, i + perPage));
+  for (let i = 0; i < all.length; i += LINES_PER_PAGE) pages.push(all.slice(i, i + LINES_PER_PAGE));
   if (pages.length === 0) pages.push([""]);
 
   const objects: string[] = [];
-  // 1: katalog, 2: drzewo stron, 3: czcionka, dalej pary (strona, treść)
   const pageIds = pages.map((_, i) => 4 + i * 2);
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
   objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`;

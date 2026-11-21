@@ -1,7 +1,4 @@
-// Przykładowe opisy stanowisk pracy (skrót z docs/HackNation/…/OSP_word.zip).
-// Służą do szybkiego wyboru OSP w kreatorze; zawsze można wkleić własny opis.
-
-export interface OspSample {
+export interface JobDescriptionSample {
   id: string;
   title: string;
   manages_people: boolean;
@@ -9,7 +6,7 @@ export interface OspSample {
   text: string;
 }
 
-export const OSP_SAMPLES: OspSample[] = [
+export const JOB_DESCRIPTION_SAMPLES: JobDescriptionSample[] = [
   {
     id: "DC-WZKSOiC-6",
     title: "Starszy specjalista – Departament Cyberbezpieczeństwa (DC WZKSOiC 6)",

@@ -2,10 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api, SESSION_STORAGE_KEY, type LoginResponse, type Role } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
 
 interface AuthState {
   session: LoginResponse | null;
-  /** false do czasu odczytania sesji z localStorage (unikamy migotania przekierowań). */
   ready: boolean;
   login: (username: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
@@ -13,37 +13,33 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+function tryStorage(action: (storage: Storage) => void): void {
+  try {
+    action(window.localStorage);
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<LoginResponse | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    tryStorage((storage) => {
+      const raw = storage.getItem(SESSION_STORAGE_KEY);
       if (raw) setSession(JSON.parse(raw) as LoginResponse);
-    } catch {
-      /* brak dostępu do localStorage */
-    }
+    });
     setReady(true);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await api.login({ username, password });
-    try {
-      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(res));
-    } catch {
-      /* sesja tylko w pamięci */
-    }
+    tryStorage((storage) => storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(res)));
     setSession(res);
     return res;
   }, []);
 
   const logout = useCallback(() => {
-    try {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch {
-      /* ignorujemy */
-    }
+    tryStorage((storage) => storage.removeItem(SESSION_STORAGE_KEY));
     setSession(null);
   }, []);
 
@@ -65,5 +61,5 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export function homeFor(role: Role): string {
-  return role === "przelozony" ? "/" : "/hr";
+  return role === "przelozony" ? ROUTES.dashboard : ROUTES.hr;
 }

@@ -12,7 +12,6 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return <textarea className={cn(fieldBase, "min-h-20 px-3 py-2", className)} {...props} />;
 }
 
-/** Natywny select ostylowany jak pozostałe pola – pełna obsługa klawiatury i czytników ekranu. */
 function Select({ className, ...props }: React.ComponentProps<"select">) {
   return <select className={cn(fieldBase, "h-9 px-2 py-1", className)} {...props} />;
 }

@@ -8,7 +8,6 @@ import { api, type LevelValue, type Rating } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { StepProps } from "./types";
 
-/** Wartość wyboru: poziom 1–5 albo „brak podstaw do oceny”. */
 type Choice = LevelValue | "none";
 
 export function AssessmentStep({ process, competencies, onProcess, goTo }: StepProps) {
@@ -36,7 +35,6 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
 
   useEffect(() => {
     setExample(rating?.example ?? "");
-    // Zmiana wskaźnika – wczytujemy zapisany przykład.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.indicator.id]);
 
@@ -66,7 +64,6 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
     [choice, example, rating?.example, save, items.length],
   );
 
-  // Skróty klawiszowe: 1–5 poziom, 0 brak podstaw, N/P następny/poprzedni (poza polami tekstowymi).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement;
@@ -102,6 +99,12 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
   }
 
   const isLast = index === items.length - 1;
+
+  async function goToSummary() {
+    const p = await api.updateProcess(process.id, { stage: "summary" });
+    onProcess(p);
+    goTo("summary");
+  }
   const groupName = `indicator-${item.indicator.id}`;
 
   return (
@@ -245,9 +248,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
             <Button
               onClick={async () => {
                 await move(0);
-                const p = await api.updateProcess(process.id, { stage: "summary" });
-                onProcess(p);
-                goTo("summary");
+                await goToSummary();
               }}
               disabled={answered === 0}
             >
@@ -255,14 +256,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
             </Button>
           )}
           {!isLast && answered === items.length && (
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                const p = await api.updateProcess(process.id, { stage: "summary" });
-                onProcess(p);
-                goTo("summary");
-              }}
-            >
+            <Button variant="secondary" onClick={goToSummary}>
               Wszystko ocenione – przejdź do podsumowania
             </Button>
           )}
