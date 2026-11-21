@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CheckSquare } from "@/components/ui/choice";
 import { api } from "@/lib/api";
 import { MAX_ADDITIONAL_CRITERIA, mandatoryCriteria } from "@/lib/domain";
+import { plural } from "@/lib/download";
 import { JOB_DESCRIPTION_SAMPLES } from "@/lib/job-description-samples";
 import { cn } from "@/lib/utils";
+import { StepActions, StepCard } from "./step-card";
 import type { StepProps } from "./types";
 
 const COMPETENCY_KEYWORDS: { pattern: RegExp; id: string }[] = [
@@ -72,31 +76,44 @@ export function CriteriaStep({ process, competencies, onProcess, goTo }: StepPro
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4">
-      <p className="text-sm text-muted-foreground">
-        {periodic
-          ? `Kryteria obowiązkowe arkusza ${process.form} są zaznaczone na stałe. Możesz dodać nie więcej niż ${MAX_ADDITIONAL_CRITERIA} kryteria dodatkowe – najlepiej te, które odpowiadają zadaniom z OSP.`
-          : "Wybierz kompetencje, które będą podstawą pierwszej oceny – najlepiej powiązane z zadaniami z OSP."}
+    <StepCard
+      stage="criteria"
+      className="gap-[18px]"
+      description={
+        periodic
+          ? `Kryteria obowiązkowe arkusza ${process.form} są zaznaczone na stałe. Możesz dodać nie więcej niż ${MAX_ADDITIONAL_CRITERIA} kryteria dodatkowe — najlepiej te, które odpowiadają zadaniom z OSP.`
+          : "Wybierz kompetencje, które będą podstawą pierwszej oceny — najlepiej powiązane z zadaniami z OSP."
+      }
+    >
+      <p className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground" aria-live="polite">
+        <Badge variant="solid" className="px-2.5 py-1 text-xs">
+          Wybrano {selected.length}
+        </Badge>
+        z {competencies.length} kompetencji
+        {periodic && (
+          <span>
+            · dodatkowe: {additional.length} z {MAX_ADDITIONAL_CRITERIA}
+          </span>
+        )}
       </p>
-      {periodic && (
-        <p className="text-sm" aria-live="polite">
-          Wybrane kryteria dodatkowe: {additional.length} z {MAX_ADDITIONAL_CRITERIA}
-        </p>
-      )}
 
       <fieldset>
         <legend className="sr-only">Kompetencje do oceny</legend>
-        <ul className="grid grid-cols-2 gap-2">
+        <ul className="grid grid-cols-2 gap-3">
           {competencies.map((c) => {
             const isMandatory = mandatory.includes(c.id);
             const checked = selected.includes(c.id);
             const disabled = isMandatory || (!checked && limitReached);
+            const n = c.indicators.length;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="flex">
                 <label
                   className={cn(
-                    "flex h-full items-start gap-3 rounded-md border bg-card p-3 has-[:checked]:border-primary",
-                    disabled && !isMandatory ? "opacity-60" : "cursor-pointer",
+                    "flex flex-1 items-start gap-3.5 rounded-lg p-4 transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
+                    checked ? "border-2 border-primary bg-primary-soft" : "border bg-card",
+                    disabled && !isMandatory && "cursor-not-allowed opacity-50",
+                    !disabled && "cursor-pointer",
+                    !checked && !disabled && "hover:border-primary-light",
                   )}
                 >
                   <input
@@ -104,17 +121,23 @@ export function CriteriaStep({ process, competencies, onProcess, goTo }: StepPro
                     checked={checked}
                     disabled={disabled}
                     onChange={() => toggle(c.id)}
-                    className="mt-1"
+                    className="sr-only"
                     aria-describedby={`${c.id}-meta`}
                   />
-                  <span className="text-sm">
-                    <span className="block font-medium">{c.name}</span>
-                    <span id={`${c.id}-meta`} className="mt-1 flex flex-wrap items-center gap-1">
-                      <span className="text-muted-foreground">
-                        {c.indicators.length} wskaźn.
-                      </span>
-                      {isMandatory && <Badge variant="muted">obowiązkowe</Badge>}
-                      {suggested.includes(c.id) && <Badge>sugerowane na podstawie OSP</Badge>}
+                  <CheckSquare checked={checked} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className={cn("text-sm leading-[19px]", checked ? "font-black text-primary" : "font-bold")}>
+                      {c.name}
+                    </span>
+                    <span
+                      id={`${c.id}-meta`}
+                      className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                    >
+                      {n} {plural(n, "wskaźnik", "wskaźniki", "wskaźników")}
+                      {isMandatory && <Badge variant={checked ? "onSoft" : "default"}>obowiązkowe</Badge>}
+                      {suggested.includes(c.id) && (
+                        <Badge variant={checked ? "onSoft" : "default"}>sugerowane z OSP</Badge>
+                      )}
                     </span>
                   </span>
                 </label>
@@ -126,14 +149,16 @@ export function CriteriaStep({ process, competencies, onProcess, goTo }: StepPro
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <div className="flex gap-2">
+      <StepActions>
         <Button variant="outline" onClick={() => goTo("job_description")}>
           Wstecz
         </Button>
+        <span className="flex-1" />
         <Button onClick={next} disabled={busy}>
           {busy ? "Zapisywanie…" : "Dalej: ocena zachowań"}
+          <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
         </Button>
-      </div>
-    </div>
+      </StepActions>
+    </StepCard>
   );
 }

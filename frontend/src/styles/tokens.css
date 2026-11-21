@@ -1,40 +1,47 @@
+/* SOWA design tokens (Figma: "SOWA – Pulpit przełożonego"). */
 :root {
-  --kk-color-bg: #f7f7f5;
-  --kk-color-surface: #ffffff;
-  --kk-color-surface-muted: #efefec;
-  --kk-color-text: #1c1c1a;
-  --kk-color-text-muted: #5b5b57;
-  --kk-color-border: #d6d6d1;
-  --kk-color-border-strong: #9a9a94;
+  --kk-color-bg: #f4f5f9; /* bg/canvas */
+  --kk-color-bg-subtle: #f9f9fc; /* bg/subtle */
+  --kk-color-surface: #ffffff; /* bg/surface, bg/sidebar */
+  --kk-color-surface-muted: #efeff6; /* status/done-bg */
+  --kk-color-text: #3a3541; /* text/primary */
+  --kk-color-text-muted: #89868d; /* text/secondary */
+  --kk-color-text-subtle: #b4b2b7; /* text/muted */
+  --kk-color-text-on-dark-muted: #e9e0fe; /* text/on-dark-muted */
+  --kk-color-border: #e7e7f4; /* border/default */
+  --kk-color-border-strong: #dbdcde; /* border/strong */
 
-  --kk-color-primary: #1f3a5f;
-  --kk-color-primary-fg: #ffffff;
-  --kk-color-primary-soft: #e3e9f1;
+  --kk-color-primary: #6e39cb; /* brand/primary */
+  --kk-color-primary-fg: #ffffff; /* text/on-dark */
+  --kk-color-primary-soft: #f1ebfe; /* brand/primary-soft */
+  --kk-color-primary-light: #c2a1fd; /* brand/primary-light */
+  --kk-color-primary-bright: #9154fd; /* gradient end, status/warn-fg */
+  --kk-gradient-primary: linear-gradient(90deg, #6e39cb 0%, #9154fd 100%);
 
-  --kk-color-danger: #a12a1f;
-  --kk-color-danger-soft: #f8e5e2;
-  --kk-color-warning: #8a5a00;
-  --kk-color-warning-soft: #fbf0d9;
-  --kk-color-success: #2d6a3e;
-  --kk-color-success-soft: #e2f0e5;
+  --kk-color-danger: #c0362c;
+  --kk-color-danger-soft: #fdecea;
+  --kk-color-warning: #9154fd;
+  --kk-color-warning-soft: #f1ebfe;
+  --kk-color-success: #2d7a4a;
+  --kk-color-success-soft: #e5f4ea;
 
-  --kk-color-focus: #0b5fd9;
-  --kk-focus-width: 3px;
+  --kk-color-focus: #6e39cb;
+  --kk-focus-width: 2px;
 
-  --kk-radius-sm: 2px;
-  --kk-radius-md: 4px;
-  --kk-radius-lg: 6px;
+  --kk-radius-sm: 4px;
+  --kk-radius-md: 8px;
+  --kk-radius-lg: 10px;
+  --kk-radius-xl: 12px;
+  --kk-radius-2xl: 16px;
 
-  --kk-space-1: 0.25rem;
-  --kk-space-2: 0.5rem;
-  --kk-space-3: 0.75rem;
-  --kk-space-4: 1rem;
-  --kk-space-6: 1.5rem;
-  --kk-space-8: 2rem;
+  --kk-shadow-card: 0 4px 16px 0 rgb(58 53 65 / 0.06);
+  --kk-shadow-sidebar: 2px 0 12px 0 rgb(58 53 65 / 0.05);
+  --kk-shadow-primary: 0 6px 14px 0 rgb(110 57 203 / 0.3);
+  --kk-shadow-hero: 0 10px 24px 0 rgb(110 57 203 / 0.25);
 
   --kk-font-sans: var(--font-kk-sans), system-ui, sans-serif;
   --kk-font-mono: var(--font-kk-mono), ui-monospace, monospace;
 
-  --kk-sidebar-width: 15rem;
-  --kk-assistant-width: 24rem;
+  --kk-sidebar-width: 260px;
+  --kk-assistant-width: 340px;
 }
