@@ -67,6 +67,13 @@ export function createHttpClient(baseUrl: string): ApiClient {
     if (token) headers.set("Authorization", `Bearer ${token}`);
     const res = await fetch(root + path, { ...init, headers });
     if (!res.ok) {
+      if (res.status === 401 && path !== "/auth/login") {
+        // Wygasła lub nieprawidłowa sesja (np. token z trybu mock): wyczyść i wróć do logowania.
+        try {
+          window.localStorage.removeItem(SESSION_STORAGE_KEY);
+        } catch {}
+        if (window.location.pathname !== "/login") window.location.assign("/login");
+      }
       let message = `Błąd serwera (${res.status})`;
       try {
         const data = await res.json();

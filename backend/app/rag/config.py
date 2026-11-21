@@ -4,7 +4,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+load_dotenv(BACKEND_DIR / ".env", override=False)
 DEFAULT_CORPUS_DIR = BACKEND_DIR / "data" / "corpus"
 
 
@@ -31,7 +35,7 @@ class RagSettings:
         return cls(
             corpus_dir=Path(_env("RAG_CORPUS_DIR") or DEFAULT_CORPUS_DIR),
             gemini_api_key=_env("GEMINI_API_KEY") or _env("GOOGLE_API_KEY"),
-            gemini_model=_env("RAG_GEMINI_MODEL", "gemini-2.5-flash"),
+            gemini_model=_env("RAG_GEMINI_MODEL", "gemini-3.5-flash"),
             gemini_embed_model=_env("RAG_GEMINI_EMBED_MODEL", "gemini-embedding-001"),
             embed_dim=int(_env("RAG_EMBED_DIM", "768")),
             groq_api_key=_env("GROQ_API_KEY"),
