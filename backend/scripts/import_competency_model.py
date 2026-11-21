@@ -45,7 +45,9 @@ def find_default_xlsx() -> Path:
         candidate = parent / "docs" / "HackNation" / "Model_kompetencji.xlsx"
         if candidate.exists():
             return candidate
-    raise FileNotFoundError("Nie znaleziono docs/HackNation/Model_kompetencji.xlsx – podaj ścieżkę jako argument.")
+    raise FileNotFoundError(
+        "Nie znaleziono docs/HackNation/Model_kompetencji.xlsx – podaj ścieżkę jako argument."
+    )
 
 
 def parse(xlsx: Path) -> dict:
@@ -72,7 +74,9 @@ def parse(xlsx: Path) -> dict:
                 continue  # nagłówek tabeli
             descriptions = [clean(c) for c in row[1:6]]
             if len(descriptions) != 5 or not all(descriptions):
-                raise ValueError(f"Arkusz {ws.title}: niekompletne opisy poziomów dla wskaźnika {clean(row[0])!r}")
+                raise ValueError(
+                    f"Arkusz {ws.title}: niekompletne opisy poziomów dla wskaźnika {clean(row[0])!r}"
+                )
             idx = len(indicators) + 1
             indicators.append(
                 {
@@ -85,8 +89,12 @@ def parse(xlsx: Path) -> dict:
                 }
             )
         if len(indicators) != expected_count:
-            raise ValueError(f"{name}: spis podaje {expected_count} wskaźników, w arkuszu jest {len(indicators)}")
-        competencies.append({"id": f"K{lp:02d}", "slug": slugify(name), "name": name, "indicators": indicators})
+            raise ValueError(
+                f"{name}: spis podaje {expected_count} wskaźników, w arkuszu jest {len(indicators)}"
+            )
+        competencies.append(
+            {"id": f"K{lp:02d}", "slug": slugify(name), "name": name, "indicators": indicators}
+        )
 
     return {
         "source": xlsx.name,
