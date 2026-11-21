@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Role = Literal["przelozony", "hr", "admin"]
 ProcessType = Literal["first", "periodic"]
@@ -113,6 +113,7 @@ class ProcessDetail(ProcessListItem):
 
 class ProcessUpdate(BaseModel):
     stage: Stage | None = None
+    form: FormType | None = None
     status: Status | None = None
     job_description: str | None = None
     period_start: date | None = None
@@ -194,6 +195,12 @@ class AskRequest(BaseModel):
 
 class Citation(BaseModel):
     marker: str
+
+    @field_validator("marker", mode="before")
+    @classmethod
+    def _marker_brackets(cls, value: object) -> object:
+        # moduł RAG numeruje cytaty liczbami, a w odpowiedzi występują jako „[n]”
+        return f"[{value}]" if isinstance(value, int) else value
     source: str
     path: str | None = None
     page: int | None = None

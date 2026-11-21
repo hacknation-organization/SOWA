@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Label } from "@/components/ui/form";
 import { Alert } from "@/components/ui/alert";
 
-const DEMO_PASSWORD = "demo";
+const DEMO_PASSWORD = "demo123";
 
 const DEMO_ROLES: { role: Role; description: string }[] = [
   { role: "przelozony", description: "Prowadzi oceny swoich pracowników krok po kroku." },

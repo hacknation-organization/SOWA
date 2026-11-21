@@ -120,7 +120,6 @@ def test_type_form_validation(client, manager):
     emp = client.get("/api/employees", headers=manager).json()[0]["id"]
     bad = [
         {"type": "first", "form": "B"},
-        {"type": "periodic", "form": None},
         {"type": "periodic", "form": "X"},
     ]
     for body in bad:
@@ -132,6 +131,22 @@ def test_type_form_validation(client, manager):
         "/api/processes", headers=manager, json={"employee_id": emp, "type": "first", "form": None}
     )
     assert ok.status_code == 201
+
+
+def test_periodic_form_chosen_on_job_description(client, manager):
+    emp = client.get("/api/employees", headers=manager).json()[0]["id"]
+    r = client.post(
+        "/api/processes", headers=manager, json={"employee_id": emp, "type": "periodic", "form": None}
+    )
+    assert r.status_code == 201
+    pid = r.json()["id"]
+    url = f"/api/processes/{pid}"
+    assert client.patch(url, headers=manager, json={"stage": "criteria"}).status_code == 422
+    r = client.patch(url, headers=manager, json={"form": "C", "stage": "criteria"})
+    assert r.status_code == 200 and r.json()["form"] == "C"
+    assert client.patch(url, headers=manager, json={"form": None}).status_code == 422
+    r = client.patch(url, headers=manager, json={"stage": "document"})
+    assert r.json()["status"] == "completed"
 
 
 def test_hr_endpoints(client, hr, manager):
