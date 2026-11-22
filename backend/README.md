@@ -47,6 +47,23 @@ wskaźniki `K01-W1` … (kolejność jak w arkuszu).
 Schemat tworzy `SQLModel.metadata.create_all` (prototyp; Alembic jest w zależnościach na potrzeby
 przyszłych migracji).
 
+### Supabase (projekt SOWA)
+
+Domyślna baza w `.env` to Postgres w Supabase (projekt `SOWA`, `eu-west-1`), przez **session pooler**
+(IPv4; host bezpośredni `db.<ref>.supabase.co` jest tylko IPv6):
+
+```
+DATABASE_URL=postgresql+psycopg://postgres.mnpzkrwmnezmwvqldupq:<HASLO_DB>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+- Hasło: Supabase → Project Settings → Database (w razie potrzeby „Reset database password”).
+- Schemat jest w `supabase/migrations/0001_init.sql` (zgodny z `app/models`) i jest już zastosowany w SOWA.
+  Wszystkie tabele mają włączony RLS bez polityk: backend łączy się jako `postgres` (omija RLS), a klucze
+  `anon`/`authenticated` (Data API) nie mają dostępu do danych, w tym `user.password_hash`.
+- Przy pierwszym starcie backend załaduje dane demo, jeśli baza jest pusta (`SEED_DEMO_DATA`).
+- Transaction pooler (port `6543`) też działa: `app/core/db.py` wyłącza wtedy prepared statements.
+- Po zmianie modeli dopisz kolejną migrację w `supabase/migrations/` (`create_all` nie zmienia istniejących tabel).
+
 ### Postgres + pgvector (docker-compose)
 
 ```bash
