@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { ArrowRight, Check, Download, FileText } from "lucide-react";
+import { ICON } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { CheckDot } from "@/components/ui/choice";
+import { Badge } from "@/components/ui/badge";
 import { api, API_MODE, LEVEL_LABELS } from "@/lib/api";
 import { LEVEL_POINTS } from "@/lib/domain";
 import { downloadProcessPdf } from "@/lib/download";
@@ -22,7 +23,7 @@ const SHORT_LEVEL: Record<number, string> = {
   5: "Znacznie powyżej",
 };
 
-const COLUMNS = "grid grid-cols-[120px_110px_170px_minmax(0,1fr)] gap-3 px-[18px]";
+const COLUMNS = "grid grid-cols-[150px_120px_190px_minmax(0,1fr)] gap-3 px-[18px]";
 
 function planItems(plan?: string): string[] {
   return (plan ?? "")
@@ -57,7 +58,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
   }
 
   return (
-    <StepCard stage="document" description="Sprawdź oceny cząstkowe i pobierz dokument do podpisu.">
+    <StepCard stage="document" description="Sprawdź oceny cząstkowe i pobierz arkusz do podpisu.">
       {API_MODE === "mock" && (
         <Alert variant="warning">
           Tryb demonstracyjny: PDF jest uproszczoną zaślepką. Arkusz zgodny ze wzorem z rozporządzenia generuje
@@ -66,54 +67,61 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
       )}
 
       <div className="overflow-hidden rounded-xl border" role="table" aria-label="Oceny cząstkowe">
-        <div role="row" className={`${COLUMNS} bg-muted py-3 text-[13px] font-bold text-muted-foreground`}>
+        <div
+          role="row"
+          className={`${COLUMNS} border-b bg-subtle py-2.5 text-[11px] font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground`}
+        >
           <span role="columnheader">Kompetencja</span>
           <span role="columnheader">Sugerowany</span>
-          <span role="columnheader">Decyzja przełożonego</span>
+          <span role="columnheader">Decyzja</span>
           <span role="columnheader">Uzasadnienie</span>
         </div>
-        {summary?.map((s) => (
-          <div role="row" key={s.competency_id} className={`${COLUMNS} items-center border-t py-3.5`}>
-            <span role="cell" className="text-sm font-black">
-              {competencies.find((c) => c.id === s.competency_id)?.name}
-            </span>
-            <span role="cell" className="text-[13px] font-medium text-muted-foreground">
-              {s.suggested_level ? SHORT_LEVEL[s.suggested_level] : "—"}
-            </span>
-            <span role="cell" className="flex flex-col items-start gap-1">
-              {s.manager_level ? (
-                <>
-                  <span className="text-[13px] font-bold">{LEVEL_LABELS[s.manager_level]}</span>
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-black text-primary">
-                    {LEVEL_POINTS[s.manager_level]} pkt
-                  </span>
-                </>
-              ) : (
-                <span className="text-[13px] text-muted-foreground">—</span>
-              )}
-            </span>
-            <span role="cell" className="text-[13px] font-medium leading-[19px] text-muted-foreground">
-              {s.justification || "—"}
-            </span>
-          </div>
-        ))}
-        <div role="row" className="flex items-center gap-3 bg-primary-soft px-[18px] py-3.5 text-primary">
-          <span role="cell" className="flex-1 text-sm font-black">
+        {summary?.map((s) => {
+          const changed = s.manager_level != null && s.suggested_level != null && s.manager_level !== s.suggested_level;
+          return (
+            <div role="row" key={s.competency_id} className={`${COLUMNS} items-start border-b py-3.5 text-[13px] leading-[19px]`}>
+              <span role="cell" className="font-medium">
+                {competencies.find((c) => c.id === s.competency_id)?.name}
+              </span>
+              <span role="cell" className="text-muted-foreground">
+                {s.suggested_level ? SHORT_LEVEL[s.suggested_level] : "—"}
+              </span>
+              <span role="cell" className="flex flex-col items-start gap-1.5">
+                {s.manager_level ? (
+                  <>
+                    <span className="font-medium">{LEVEL_LABELS[s.manager_level]}</span>
+                    <span className="flex gap-1.5">
+                      <Badge>{LEVEL_POINTS[s.manager_level]} pkt</Badge>
+                      {changed && <Badge variant="warning">zmieniono</Badge>}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </span>
+              <span role="cell" className="text-muted-foreground">
+                {s.justification || "—"}
+              </span>
+            </div>
+          );
+        })}
+        <div role="row" className="flex items-center justify-between bg-subtle px-[18px] py-3.5">
+          <span role="cell" className="text-[13px] font-medium">
             Suma punktów
           </span>
-          <span role="cell" className="text-lg font-black">
+          <span role="cell" className="text-lg font-semibold">
             {total} pkt
           </span>
         </div>
       </div>
 
       {plan.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-bold">Plan rozwoju</h3>
-          <ul className="flex flex-col gap-2 rounded-lg bg-muted px-4 py-3.5">
+        <div className="flex flex-col gap-2.5">
+          <h3 className="text-[15px] font-semibold leading-[22px]">Plan rozwoju</h3>
+          <ul className="flex flex-col gap-2">
             {plan.map((item, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-sm font-medium leading-5">
-                <CheckDot className="mt-px" />
+              <li key={i} className="flex items-start gap-2.5 text-[13px] leading-[19px]">
+                <Check {...ICON} className="mt-0.5 size-4 shrink-0 text-primary" />
                 {item}
               </li>
             ))}
@@ -121,16 +129,16 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-3.5 rounded-lg border py-3.5 pl-3.5 pr-4">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <FileText aria-hidden absoluteStrokeWidth strokeWidth={2} className="size-[22px]" />
+      <div className="flex items-center gap-3.5 rounded-lg border bg-subtle p-3.5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+          <FileText {...ICON} className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold">{filename}</p>
-          <p className="text-xs font-medium text-muted-foreground">Gotowy do podpisu</p>
+          <p className="truncate font-medium">{filename}</p>
+          <p className="text-xs leading-4 text-faint-foreground">Gotowy do podpisu</p>
         </div>
-        <Button onClick={download} disabled={busy} className="px-4">
-          <Download aria-hidden absoluteStrokeWidth strokeWidth={2} />
+        <Button onClick={download} disabled={busy}>
+          <Download {...ICON} />
           {busy ? "Generowanie…" : "Pobierz PDF"}
         </Button>
       </div>
@@ -142,8 +150,11 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
           Wstecz
         </Button>
         <span className="flex-1" />
-        <Button asChild variant="link">
-          <Link href={ROUTES.dashboard}>Wróć do pulpitu</Link>
+        <Button asChild variant="ghost">
+          <Link href={ROUTES.dashboard}>
+            Wróć do pulpitu
+            <ArrowRight {...ICON} />
+          </Link>
         </Button>
       </StepActions>
     </StepCard>

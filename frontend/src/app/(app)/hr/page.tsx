@@ -24,6 +24,7 @@ import {
   type ProcessStatus,
   type ProcessType,
 } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/lib/use-api";
 import { daysUntil, formatDate } from "@/lib/utils";
 
@@ -175,11 +176,15 @@ export default function HrPage() {
               </TableHeader>
               <TableBody>
                 {loading && !data ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-muted-foreground">
-                      Ładowanie…
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 4 }, (_, i) => (
+                    <TableRow key={i} aria-hidden className="hover:bg-transparent">
+                      {Array.from({ length: 9 }, (_, c) => (
+                        <TableCell key={c}>
+                          <Skeleton className={c === 0 ? "size-4" : "h-3 w-full max-w-28"} />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
                 ) : processes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-muted-foreground">

@@ -9,10 +9,10 @@
   --popover: var(--kk-color-surface);
   --popover-foreground: var(--kk-color-text);
   --primary: var(--kk-color-primary);
-  --primary-foreground: var(--kk-color-primary-fg);
-  --secondary: var(--kk-color-surface-muted);
+  --primary-foreground: var(--kk-color-text-inverse);
+  --secondary: var(--kk-color-subtle);
   --secondary-foreground: var(--kk-color-text);
-  --muted: var(--kk-color-bg);
+  --muted: var(--kk-color-subtle);
   --muted-foreground: var(--kk-color-text-muted);
   --accent: var(--kk-color-primary-soft);
   --accent-foreground: var(--kk-color-primary);
@@ -32,24 +32,23 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--kk-color-primary-hover);
   --color-primary-soft: var(--kk-color-primary-soft);
-  --color-primary-light: var(--kk-color-primary-light);
-  --color-primary-bright: var(--kk-color-primary-bright);
+  --color-primary-border: var(--kk-color-primary-border);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-faint-foreground: var(--kk-color-text-subtle);
-  --color-on-dark-muted: var(--kk-color-text-on-dark-muted);
-  --color-subtle: var(--kk-color-bg-subtle);
+  --color-subtle: var(--kk-color-sidebar);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-danger-soft: var(--kk-color-danger-soft);
   --color-warning: var(--kk-color-warning);
   --color-warning-soft: var(--kk-color-warning-soft);
-  --color-success: var(--kk-color-success);
-  --color-success-soft: var(--kk-color-success-soft);
+  --color-success: var(--kk-color-primary);
+  --color-success-soft: var(--kk-color-primary-soft);
   --color-border: var(--border);
   --color-border-strong: var(--kk-color-border-strong);
   --color-input: var(--input);
@@ -59,15 +58,10 @@
   --radius-md: var(--kk-radius-md);
   --radius-lg: var(--kk-radius-lg);
   --radius-xl: var(--kk-radius-xl);
-  --radius-2xl: var(--kk-radius-2xl);
-
-  --shadow-card: var(--kk-shadow-card);
-  --shadow-sidebar: var(--kk-shadow-sidebar);
-  --shadow-primary: var(--kk-shadow-primary);
-  --shadow-hero: var(--kk-shadow-hero);
 
   --font-sans: var(--kk-font-sans);
   --font-mono: var(--kk-font-mono);
+  --font-brand: var(--font-kk-brand), var(--kk-font-sans);
 }
 
 @layer base {
@@ -80,14 +74,62 @@
     color: var(--foreground);
     font-family: var(--kk-font-sans);
   }
+  /* Body text is 14/21 (Figma "Body/Regular"); keep the root at 16px so rem-based spacing matches the design. */
+  body {
+    font-size: 14px;
+    line-height: 21px;
+  }
   :focus-visible {
     outline: var(--kk-focus-width) solid var(--kk-color-focus);
     outline-offset: 2px;
   }
 }
 
-@utility bg-brand-gradient {
-  background-image: var(--kk-gradient-primary);
+/* Page titles share the brand typeface with the SOWA wordmark. */
+@utility text-display {
+  font-family: var(--font-brand);
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+@keyframes kk-progress-line {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+.kk-progress-line {
+  animation: kk-progress-line 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+/* Wizard step content enters with a short fade and lift when the step changes. */
+@keyframes kk-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.kk-step-in {
+  animation: kk-step-in 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-step-in {
+    animation: none;
+  }
+  .kk-progress-line {
+    animation: none;
+    left: 0;
+    width: 100%;
+    opacity: 0.4;
+  }
 }
 
 .kk-desktop-only {

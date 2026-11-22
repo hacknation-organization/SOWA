@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, Clock, Download, Search } from "lucide-react";
-import { Avatar, Deadline, FormTag, StageProgress, StatusBadge } from "@/components/process-badges";
+import { ArrowRight, Download, Search } from "lucide-react";
+import { ICON } from "@/components/app-shell";
+import { Avatar, DeadlineBlock, StageSegments, stageIndex, typeLabel } from "@/components/process-badges";
+import { ActiveCardSkeleton, TableSkeleton } from "@/components/loading-states";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/form";
+import { LoadingRegion } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -17,39 +20,51 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, TYPE_LABELS, type Employee, type Process, type ProcessType } from "@/lib/api";
+import { api, STAGES, TYPE_LABELS, type Employee, type Process } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { downloadProcessPdf, plural } from "@/lib/download";
-import { assessmentPath, newAssessmentPath } from "@/lib/routes";
+import { LEVEL_POINTS } from "@/lib/domain";
+import { downloadProcessPdf } from "@/lib/download";
+import { assessmentPath, ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
-import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
-const ICON = { absoluteStrokeWidth: true, strokeWidth: 2, "aria-hidden": true } as const;
-
-type SortKey = "deadline" | "name";
-
-function today(): string {
+function todayLabel(): string {
   const text = new Date().toLocaleDateString("pl-PL", {
-    weekday: "short",
+    weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  return text.charAt(0).toLocaleUpperCase("pl-PL") + text.slice(1).replace(".", "");
+  return text.charAt(0).toLocaleUpperCase("pl-PL") + text.slice(1);
 }
 
-function longDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
+function yearOf(p: Process): string {
+  const iso = p.updated_at ?? p.deadline;
+  return iso ? String(new Date(iso).getFullYear()) : "";
 }
 
 export default function DashboardPage() {
   const { session } = useAuth();
   const { data, error, loading } = useApi(async () => {
     const [processes, employees] = await Promise.all([api.getProcesses(), api.getEmployees()]);
-    return { processes, employees };
+    // Total points of each completed assessment, from the levels the manager approved.
+    const scores = new Map<string, number>();
+    await Promise.all(
+      processes
+        .filter((p) => p.status === "completed")
+        .map(async (p) => {
+          try {
+            const summary = await api.getSummary(p.id);
+            scores.set(
+              p.id,
+              summary.reduce((sum, s) => sum + (s.manager_level ? LEVEL_POINTS[s.manager_level] : 0), 0),
+            );
+          } catch {}
+        }),
+    );
+    return { processes, employees, scores };
   });
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortKey>("deadline");
   const [year, setYear] = useState("");
 
   const employees = useMemo(
@@ -57,7 +72,7 @@ export default function DashboardPage() {
     [data?.employees],
   );
   const all = data?.processes ?? [];
-  const nameOf = (p: Process) => p.employee_name ?? employees.get(p.employee_id)?.full_name ?? "";
+  const nameOf = (p: Process) => p.employee_name ?? employees.get(p.employee_id)?.full_name ?? "Pracownik";
 
   const q = query.trim().toLocaleLowerCase("pl-PL");
   const matches = (p: Process) =>
@@ -67,171 +82,203 @@ export default function DashboardPage() {
       .some((s) => s!.toLocaleLowerCase("pl-PL").includes(q));
 
   const active = all
-    .filter((p) => p.status !== "completed")
-    .sort((a, b) =>
-      sort === "name"
-        ? nameOf(a).localeCompare(nameOf(b), "pl")
-        : (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"),
-    );
+    .filter((p) => p.status !== "completed" && matches(p))
+    .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
   const done = all.filter((p) => p.status === "completed");
-  const years = [...new Set(done.map((p) => yearOf(p)).filter(Boolean))].sort().reverse();
-  const doneShown = done.filter((p) => matches(p) && (!year || yearOf(p) === year));
-  const activeShown = active.filter(matches);
+  const years = [...new Set(done.map(yearOf).filter(Boolean))].sort().reverse();
+  const shownYear = year || years[0] || "";
+  const doneShown = done.filter((p) => matches(p) && (!shownYear || yearOf(p) === shownYear));
 
   const firstName = session?.display_name.split(/\s+/)[0] ?? "";
-  const overdue = active.filter((p) => p.status === "overdue");
-  const next = overdue[0] ?? active.find((p) => p.deadline);
+  const cycleEnd = all
+    .map((p) => p.deadline)
+    .filter((d): d is string => !!d)
+    .sort()
+    .pop();
 
   return (
-    <div className="flex flex-col gap-7 px-10 pb-12 pt-6">
-      <section
-        aria-label="Powitanie"
-        className="flex flex-col items-start gap-3 rounded-2xl bg-brand-gradient py-7 pl-8 pr-10 shadow-hero"
-      >
-        <h1 className="text-[32px] font-black leading-[38px] text-primary-foreground">
-          Dzień dobry{firstName ? `, ${firstName}` : ""}!
-        </h1>
-        <p className="text-[15px] font-medium leading-[22px] text-on-dark-muted">
-          {loading
-            ? "Wczytuję Twoje oceny…"
-            : active.length === 0
-              ? "Nie masz ocen w toku. Rozpocznij nową ocenę poniżej."
-              : `Masz ${active.length} ${plural(active.length, "ocenę", "oceny", "ocen")} w toku.` +
-                (overdue.length
-                  ? ` Po terminie: ${overdue.length} — m.in. ${nameOf(overdue[0])}.`
-                  : next?.deadline
-                    ? ` Najbliższy termin mija ${longDate(next.deadline)} — ${nameOf(next)}.`
-                    : "")}
-        </p>
-        {active[0] && (
-          <Button asChild className="h-10 bg-card text-primary hover:bg-primary-soft">
-            <Link href={assessmentPath((next ?? active[0]).id)}>
-              Wróć do oceny
-              <ArrowRight {...ICON} />
-            </Link>
-          </Button>
-        )}
-      </section>
-
-      <section aria-labelledby="start-heading" className="flex flex-col gap-3.5">
-        <h2 id="start-heading" className="text-lg font-black">
-          Rozpocznij nową ocenę
-        </h2>
-        <div className="grid grid-cols-2 gap-5">
-          <StartTile
-            type="first"
-            title="Pierwsza ocena"
-            sheet="Arkusz A"
-            description="Dla osoby, która po raz pierwszy podjęła pracę w służbie cywilnej."
-          />
-          <StartTile
-            type="periodic"
-            title="Ocena okresowa"
-            sheet="Arkusz B / C"
-            description="B — stanowiska kierownicze, C — pozostałe stanowiska."
-          />
+    <div className="flex flex-col gap-8 px-10 pb-12 pt-8">
+      <header className="flex items-center justify-between gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-display">
+            Dzień dobry{firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="text-muted-foreground">
+            {todayLabel()}
+            {cycleEnd &&
+              ` · cykl ocen trwa do ${new Date(cycleEnd).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })}`}
+          </p>
         </div>
-      </section>
-
-      <div className="flex items-center gap-4">
-        <label className="flex h-[41px] max-w-[811px] flex-1 items-center gap-2.5 rounded-md bg-card px-3.5 shadow-card focus-within:ring-2 focus-within:ring-primary/30">
-          <span className="sr-only">Szukaj pracownika lub oceny</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Szukaj pracownika lub oceny…"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-faint-foreground"
-          />
-          <Search {...ICON} className="size-[18px] text-primary" />
-        </label>
-        <div className="flex-1" />
-        <p className="flex h-[41px] items-center gap-2 rounded-md bg-card px-3.5 text-[13px] font-bold shadow-card">
-          <Clock {...ICON} className="size-4 text-primary" />
-          {today()}
-        </p>
-      </div>
+        <div className="flex items-center gap-2">
+          <label className="flex h-[39px] w-[280px] items-center gap-2 rounded-md border bg-card px-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15">
+            <Search {...ICON} className="size-4 text-faint-foreground" />
+            <span className="sr-only">Szukaj pracownika lub oceny</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Szukaj pracownika lub oceny"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint-foreground"
+            />
+          </label>
+          <Button asChild>
+            <Link href={ROUTES.newAssessment}>Nowa ocena</Link>
+          </Button>
+        </div>
+      </header>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <ProcessCard
-        title="Oceny w toku"
-        count={activeShown.length}
-        loading={loading}
-        empty={q ? "Brak ocen w toku pasujących do wyszukiwania." : "Brak ocen w toku."}
-        control={
-          <Select
-            aria-label="Sortuj oceny w toku"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="h-8 border-0 bg-muted pl-3 pr-8 text-[13px] font-bold"
-          >
-            <option value="deadline">Sortuj: termin</option>
-            <option value="name">Sortuj: pracownik</option>
-          </Select>
-        }
-        processes={activeShown}
-        employees={employees}
-      />
+      <section aria-labelledby="todo-heading" className="flex flex-col gap-3">
+        <SectionTitle id="todo-heading" title="Do dokończenia" count={loading ? undefined : active.length} />
+        {loading ? (
+          <LoadingRegion label="Wczytywanie ocen w toku">
+            <ActiveCardSkeleton />
+          </LoadingRegion>
+        ) : active.length === 0 ? (
+          <Card className="flex items-center justify-between gap-4 px-6 py-5">
+            <p className="text-[13px] text-muted-foreground">
+              {q ? "Żadna ocena w toku nie pasuje do wyszukiwania." : "Nie masz ocen w toku."}
+            </p>
+            {!q && (
+              <Button asChild variant="outline">
+                <Link href={ROUTES.newAssessment}>Rozpocznij nową ocenę</Link>
+              </Button>
+            )}
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {active.map((p, i) => (
+              <li key={p.id}>
+                <ActiveCard process={p} employee={employees.get(p.employee_id)} name={nameOf(p)} primary={i === 0} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      <ProcessCard
-        title="Zakończone"
-        count={doneShown.length}
-        loading={loading}
-        empty={q || year ? "Brak zakończonych ocen dla wybranych filtrów." : "Brak zakończonych ocen."}
-        control={
-          years.length > 0 && (
-            <Select
-              aria-label="Rok zakończenia"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              className="h-8 border-0 bg-muted pl-3 pr-8 text-[13px] font-bold"
-            >
-              <option value="">Rok: wszystkie</option>
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  Rok: {y}
-                </option>
-              ))}
-            </Select>
-          )
-        }
-        processes={doneShown}
-        employees={employees}
-      />
+      <section aria-labelledby="done-heading" className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <SectionTitle
+            id="done-heading"
+            title={shownYear ? `Zakończone w ${shownYear}` : "Zakończone"}
+            count={loading ? undefined : doneShown.length}
+          />
+          {years.length > 1 && (
+            <div className="w-36">
+              <Select
+                aria-label="Rok zakończenia"
+                value={shownYear}
+                onChange={(e) => setYear(e.target.value)}
+                className="h-8 border-border text-[13px]"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    Rok: {y}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+        </div>
+        {loading ? (
+          <LoadingRegion label="Wczytywanie zakończonych ocen">
+            <TableSkeleton rows={3} />
+          </LoadingRegion>
+        ) : (
+          <Card className="overflow-hidden">
+            {doneShown.length === 0 ? (
+              <p className="px-6 py-5 text-[13px] text-muted-foreground">
+                {q ? "Żadna zakończona ocena nie pasuje do wyszukiwania." : "Brak zakończonych ocen."}
+              </p>
+            ) : (
+              <Table aria-labelledby="done-heading" className="table-fixed">
+                <colgroup>
+                  <col className="w-[344px]" />
+                  <col className="w-[260px]" />
+                  <col className="w-[190px]" />
+                  <col className="w-[110px]" />
+                  <col />
+                </colgroup>
+                <TableHeader>
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableHead>Pracownik</TableHead>
+                    <TableHead className="px-0">Rodzaj oceny</TableHead>
+                    <TableHead className="px-0">Zakończono</TableHead>
+                    <TableHead className="px-0">Wynik</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Akcje</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {doneShown.map((p) => (
+                    <DoneRow
+                      key={p.id}
+                      process={p}
+                      employee={employees.get(p.employee_id)}
+                      name={nameOf(p)}
+                      score={data?.scores.get(p.id)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        )}
+      </section>
     </div>
   );
 }
 
-function yearOf(p: Process): string {
-  const iso = p.updated_at ?? p.deadline;
-  return iso ? String(new Date(iso).getFullYear()) : "";
+function SectionTitle({ id, title, count }: { id: string; title: string; count?: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <h2 id={id} className="text-[17px] font-semibold leading-6 tracking-[-0.1px]">
+        {title}
+      </h2>
+      {count !== undefined && <Badge aria-label={`${count} pozycji`}>{count}</Badge>}
+    </div>
+  );
 }
 
-function StartTile({
-  type,
-  title,
-  sheet,
-  description,
+function ActiveCard({
+  process: p,
+  employee,
+  name,
+  primary,
 }: {
-  type: ProcessType;
-  title: string;
-  sheet: string;
-  description: string;
+  process: Process;
+  employee?: Employee;
+  name: string;
+  primary: boolean;
 }) {
+  const idx = stageIndex(p.stage);
   return (
-    <Card className="flex items-center gap-[18px] p-[22px]">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="flex items-center gap-2 text-lg font-black">
-          {title}
-          <Badge>{sheet}</Badge>
-        </h3>
-        <p className="text-[13px] font-medium leading-[19px] text-muted-foreground">{description}</p>
+    <Card className="flex items-center gap-8 px-6 py-5">
+      <div className="flex w-[300px] shrink-0 items-center gap-3">
+        <Avatar name={name} className="size-10 text-[13px]" />
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{name}</p>
+          {employee?.position && (
+            <p className="truncate text-[13px] leading-[19px] text-muted-foreground">{employee.position}</p>
+          )}
+        </div>
       </div>
-      <Button asChild>
-        <Link href={newAssessmentPath(type)}>
-          Rozpocznij
-          <span className="sr-only">: {title.toLocaleLowerCase("pl-PL")}</span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p className="text-xs leading-4 text-faint-foreground">{typeLabel(p.type, p.form)}</p>
+        <p className="text-[13px] font-medium leading-[19px]">
+          Krok {idx + 1} z {STAGES.length} — {STAGES[idx]?.label}
+        </p>
+        <StageSegments stage={p.stage} />
+      </div>
+      <div className="w-[160px] shrink-0">
+        <DeadlineBlock iso={p.deadline} />
+      </div>
+      <Button asChild variant={primary ? "default" : "outline"}>
+        <Link href={assessmentPath(p.id)}>
+          Kontynuuj ocenę
+          <span className="sr-only">: {name}</span>
           <ArrowRight {...ICON} />
         </Link>
       </Button>
@@ -239,131 +286,57 @@ function StartTile({
   );
 }
 
-function ProcessCard({
-  title,
-  count,
-  control,
-  processes,
-  employees,
-  loading,
-  empty,
+function DoneRow({
+  process: p,
+  employee,
+  name,
+  score,
 }: {
-  title: string;
-  count: number;
-  control?: React.ReactNode;
-  processes: Process[];
-  employees: Map<string, Employee>;
-  loading: boolean;
-  empty: string;
+  process: Process;
+  employee?: Employee;
+  name: string;
+  score?: number;
 }) {
-  const id = `table-${title.replace(/\s+/g, "-").toLowerCase()}`;
-  return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center gap-2.5 px-6 pb-4 pt-5">
-        <h2 id={id} className="text-lg font-black">
-          {title}
-        </h2>
-        <Badge variant="solid" className="px-[9px] text-xs" aria-label={`${count} pozycji`}>
-          {count}
-        </Badge>
-        <div className="flex-1" />
-        {control && <div className="w-44">{control}</div>}
-      </div>
-      {loading ? (
-        <p className="px-6 pb-6 text-sm text-muted-foreground">Ładowanie…</p>
-      ) : processes.length === 0 ? (
-        <p className="border-t px-6 py-6 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <Table aria-labelledby={id} className="table-fixed">
-          <colgroup>
-            <col className="w-[248px]" />
-            <col className="w-[184px]" />
-            <col className="w-[204px]" />
-            <col className="w-[124px]" />
-            <col className="w-[124px]" />
-            <col />
-          </colgroup>
-          <TableHeader>
-            <TableRow className="border-0 hover:bg-transparent">
-              <TableHead>Pracownik</TableHead>
-              <TableHead className="px-0">Rodzaj oceny</TableHead>
-              <TableHead className="px-0">Etap</TableHead>
-              <TableHead className="px-0">Termin</TableHead>
-              <TableHead className="px-0">Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Akcje</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {processes.map((p) => (
-              <ProcessRow key={p.id} process={p} employee={employees.get(p.employee_id)} />
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </Card>
-  );
-}
-
-function ProcessRow({ process: p, employee }: { process: Process; employee?: Employee }) {
   const [busy, setBusy] = useState(false);
-  const done = p.status === "completed";
-  const name = p.employee_name ?? employee?.full_name ?? "Pracownik";
   return (
     <TableRow>
       <TableCell>
         <div className="flex items-center gap-3">
-          <Avatar name={name} tone={done ? "neutral" : "soft"} />
+          <Avatar name={name} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold">{name}</p>
+            <p className="truncate font-medium">{name}</p>
             {employee?.position && (
-              <p className="truncate text-xs font-medium text-muted-foreground">{employee.position}</p>
+              <p className="truncate text-xs leading-4 text-faint-foreground">{employee.position}</p>
             )}
           </div>
         </div>
       </TableCell>
-      <TableCell className="px-0">
-        <span className="flex items-center gap-2 font-medium">
-          {TYPE_LABELS[p.type]}
-          <FormTag type={p.type} form={p.form} />
-        </span>
-      </TableCell>
-      <TableCell className="px-0">
-        <StageProgress stage={p.stage} done={done} />
-      </TableCell>
-      <TableCell className="px-0">
-        <Deadline iso={p.deadline} done={done} stacked />
-      </TableCell>
-      <TableCell className="px-0">
-        <StatusBadge status={p.status} />
-      </TableCell>
+      <TableCell className="px-0 text-muted-foreground">{typeLabel(p.type, p.form)}</TableCell>
+      <TableCell className="px-0 text-muted-foreground">{formatDate(p.updated_at)}</TableCell>
+      <TableCell className="px-0 font-medium">{score !== undefined ? `${score} pkt` : "—"}</TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-2">
-          {done && (
-            <Button
-              variant="secondary"
-              size="icon"
-              disabled={busy}
-              aria-label={`Pobierz PDF: ${name}`}
-              title="Pobierz PDF"
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await downloadProcessPdf(p.id);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <Download {...ICON} className={cn("!size-[18px]", busy && "animate-pulse")} />
-            </Button>
-          )}
-          <Button asChild variant={done ? "outline" : "default"}>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={busy}
+            aria-label={`Pobierz PDF: ${name}`}
+            title="Pobierz PDF"
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await downloadProcessPdf(p.id);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <Download {...ICON} className="!size-[18px]" />
+          </Button>
+          <Button asChild variant="outline">
             <Link href={assessmentPath(p.id)}>
-              {done ? "Otwórz" : "Kontynuuj"}
+              Otwórz
               <span className="sr-only"> ocenę: {name}</span>
-              <ArrowRight {...ICON} />
             </Link>
           </Button>
         </div>
