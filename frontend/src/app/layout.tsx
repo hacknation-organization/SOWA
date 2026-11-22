@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { fontMono, fontSans } from "./fonts";
+import { fontBrand, fontMono, fontSans } from "./fonts";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kompas kompetencji",
+  title: "SOWA — System Oceny, Wsparcia i Analizy",
   description: "Wsparcie przełożonych w ocenie pracowników służby cywilnej",
 };
 
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className={`${fontSans.variable} ${fontMono.variable}`}>
+    <html lang="pl" className={`${fontSans.variable} ${fontMono.variable} ${fontBrand.variable}`}>
       <body className="antialiased">
         <a
           href="#main"
@@ -32,7 +32,7 @@ export default function RootLayout({
           <div className="max-w-md">
             <h1 className="mb-2 text-xl font-semibold">Aplikacja przeznaczona na komputer</h1>
             <p className="text-muted-foreground">
-              Kompas kompetencji działa w przeglądarce na komputerze stacjonarnym lub laptopie
+              SOWA działa w przeglądarce na komputerze stacjonarnym lub laptopie
               (szerokość okna co najmniej 1024 px). Otwórz go na komputerze albo poszerz okno.
             </p>
           </div>

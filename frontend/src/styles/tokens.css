@@ -1,47 +1,38 @@
-/* SOWA design tokens (Figma: "SOWA – Pulpit przełożonego"). */
+/* SOWA redesign tokens (Figma: "SOWA – Pulpit przełożonego (redesign)", collection "SOWA / Kolory"). */
 :root {
-  --kk-color-bg: #f4f5f9; /* bg/canvas */
-  --kk-color-bg-subtle: #f9f9fc; /* bg/subtle */
-  --kk-color-surface: #ffffff; /* bg/surface, bg/sidebar */
-  --kk-color-surface-muted: #efeff6; /* status/done-bg */
-  --kk-color-text: #3a3541; /* text/primary */
-  --kk-color-text-muted: #89868d; /* text/secondary */
-  --kk-color-text-subtle: #b4b2b7; /* text/muted */
-  --kk-color-text-on-dark-muted: #e9e0fe; /* text/on-dark-muted */
-  --kk-color-border: #e7e7f4; /* border/default */
-  --kk-color-border-strong: #dbdcde; /* border/strong */
+  --kk-color-bg: #f6f5f2; /* bg/canvas */
+  --kk-color-surface: #ffffff; /* bg/surface */
+  --kk-color-subtle: #f1efea; /* bg/subtle */
+  --kk-color-sidebar: #fbfaf8; /* bg/sidebar */
+  --kk-color-border: #e5e2db; /* border/default */
+  --kk-color-border-strong: #cfcbc2; /* border/strong */
 
-  --kk-color-primary: #6e39cb; /* brand/primary */
-  --kk-color-primary-fg: #ffffff; /* text/on-dark */
-  --kk-color-primary-soft: #f1ebfe; /* brand/primary-soft */
-  --kk-color-primary-light: #c2a1fd; /* brand/primary-light */
-  --kk-color-primary-bright: #9154fd; /* gradient end, status/warn-fg */
-  --kk-gradient-primary: linear-gradient(90deg, #6e39cb 0%, #9154fd 100%);
+  --kk-color-text: #17181b; /* text/primary */
+  --kk-color-text-muted: #5c5a55; /* text/secondary */
+  --kk-color-text-subtle: #7a776f; /* text/tertiary */
+  --kk-color-text-inverse: #ffffff; /* text/inverse */
 
-  --kk-color-danger: #c0362c;
-  --kk-color-danger-soft: #fdecea;
-  --kk-color-warning: #9154fd;
-  --kk-color-warning-soft: #f1ebfe;
-  --kk-color-success: #2d7a4a;
-  --kk-color-success-soft: #e5f4ea;
+  --kk-color-primary: #1f5f52; /* accent/default */
+  --kk-color-primary-hover: #174b41; /* accent/hover */
+  --kk-color-primary-soft: #e7f0ec; /* accent/soft */
+  --kk-color-primary-border: #a9cbc0; /* accent/border */
 
-  --kk-color-focus: #6e39cb;
+  --kk-color-warning: #8a5300; /* warning/text */
+  --kk-color-warning-soft: #fbf0dc; /* warning/soft */
+  --kk-color-danger: #a8281e; /* danger/text */
+  --kk-color-danger-soft: #fbe9e7; /* danger/soft */
+
+  --kk-color-focus: #1f5f52;
   --kk-focus-width: 2px;
 
   --kk-radius-sm: 4px;
-  --kk-radius-md: 8px;
-  --kk-radius-lg: 10px;
-  --kk-radius-xl: 12px;
-  --kk-radius-2xl: 16px;
-
-  --kk-shadow-card: 0 4px 16px 0 rgb(58 53 65 / 0.06);
-  --kk-shadow-sidebar: 2px 0 12px 0 rgb(58 53 65 / 0.05);
-  --kk-shadow-primary: 0 6px 14px 0 rgb(110 57 203 / 0.3);
-  --kk-shadow-hero: 0 10px 24px 0 rgb(110 57 203 / 0.25);
+  --kk-radius-md: 8px; /* controls */
+  --kk-radius-lg: 10px; /* options, inner panels */
+  --kk-radius-xl: 12px; /* cards */
 
   --kk-font-sans: var(--font-kk-sans), system-ui, sans-serif;
   --kk-font-mono: var(--font-kk-mono), ui-monospace, monospace;
 
-  --kk-sidebar-width: 260px;
+  --kk-sidebar-width: 248px;
   --kk-assistant-width: 340px;
 }

@@ -1,10 +1,11 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowUp, ChevronRight } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Label, Textarea } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import { TypingDots } from "@/components/ui/skeleton";
 import { api, type AskResponse, type ChatMode, type Citation } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,8 @@ const MODE_LABELS: Record<ChatMode, string> = {
   formal: "Zasady i przepisy",
   interview: "Przygotowanie rozmowy",
 };
+
+const SOURCES = ["Ustawa o służbie cywilnej", "Rozporządzenie KPRM", "Model kompetencji"];
 
 const EXAMPLES: Record<ChatMode, string[]> = {
   formal: [
@@ -73,7 +76,7 @@ export function AssistantChat({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-[18px]">
+    <div className="flex h-full min-h-0 flex-col gap-5">
       {allowModeSwitch && (
         <div role="group" aria-label="Tryb asystenta" className="flex gap-1 rounded-lg bg-muted p-1">
           {(Object.keys(MODE_LABELS) as ChatMode[]).map((m) => (
@@ -83,8 +86,8 @@ export function AssistantChat({
               aria-pressed={mode === m}
               onClick={() => setMode(m)}
               className={cn(
-                "flex-1 rounded-md px-3 py-2 text-[13px] font-bold transition-colors",
-                mode === m ? "bg-card text-primary shadow-card" : "text-muted-foreground hover:text-foreground",
+                "flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+                mode === m ? "bg-card text-foreground ring-1 ring-border" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {MODE_LABELS[m]}
@@ -95,23 +98,34 @@ export function AssistantChat({
 
       <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" aria-live="polite">
         {messages.length === 0 ? (
-          <div className="flex flex-col gap-[18px]">
-            <p className="rounded-lg bg-primary-soft px-4 py-3.5 text-[13px] font-medium leading-[19px]">
-              Odpowiadam wyłącznie na podstawie bazy wiedzy: ustawy, rozporządzeń, poradników i modelu
-              kompetencji. Zawsze wskazuję źródło, a gdy nie znam odpowiedzi — mówię o tym wprost.
-            </p>
+          <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2.5">
-              <p className="text-sm font-bold">Przykładowe pytania</p>
-              <ul className="flex flex-col gap-2.5">
+              <p className="text-[13px] leading-[19px] text-muted-foreground">
+                Odpowiadam wyłącznie na podstawie bazy wiedzy i zawsze podaję źródło. Jeśli czegoś nie wiem — mówię
+                to wprost.
+              </p>
+              <ul className="flex flex-wrap gap-1.5" aria-label="Źródła wiedzy">
+                {SOURCES.map((src) => (
+                  <li key={src}>
+                    <Badge>{src}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-[11px] font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground">
+                Przykładowe pytania
+              </p>
+              <ul className="divide-y overflow-hidden rounded-lg border">
                 {EXAMPLES[mode].map((ex) => (
                   <li key={ex}>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2.5 rounded-lg border py-3 pl-3.5 pr-3 text-left text-[13px] font-bold leading-[18px] text-primary transition-colors hover:border-primary-light hover:bg-primary-soft"
+                      className="flex w-full items-center gap-3 px-3.5 py-[11px] text-left text-[13px] leading-[19px] transition-colors hover:bg-subtle"
                       onClick={() => ask(ex)}
                     >
                       <span className="flex-1">{ex}</span>
-                      <ArrowRight aria-hidden absoluteStrokeWidth strokeWidth={2} className="size-4 shrink-0" />
+                      <ChevronRight aria-hidden absoluteStrokeWidth strokeWidth={1.6} className="size-4 shrink-0 text-faint-foreground" />
                     </button>
                   </li>
                 ))}
@@ -122,13 +136,16 @@ export function AssistantChat({
           <ol ref={listRef} className="flex flex-col gap-4">
             {messages.map((m) => (
               <li key={m.id} className="flex flex-col gap-2">
-                <p className="max-w-[90%] self-end rounded-lg rounded-br-sm bg-primary px-3 py-2 text-[13px] font-medium text-primary-foreground">
+                <p className="max-w-[90%] self-end rounded-lg bg-muted px-3 py-2 text-[13px] leading-[19px]">
                   <span className="sr-only">Pytanie: </span>
                   {m.question}
                 </p>
                 {m.error && <Alert variant="danger">{m.error}</Alert>}
                 {!m.response && !m.error && (
-                  <p className="text-[13px] text-muted-foreground">Szukam w źródłach…</p>
+                  <p role="status" className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <TypingDots />
+                    Szukam w źródłach…
+                  </p>
                 )}
                 {m.response && <Answer id={m.id} res={m.response} compact={compact} />}
               </li>
@@ -138,16 +155,18 @@ export function AssistantChat({
       </div>
 
       <form
-        className="flex flex-col gap-2.5"
+        className="flex flex-col gap-3.5 rounded-lg border border-border-strong bg-card p-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15"
         onSubmit={(e) => {
           e.preventDefault();
           ask(question);
         }}
       >
-        <Label htmlFor={inputId}>Twoje pytanie</Label>
-        <Textarea
+        <label htmlFor={inputId} className="sr-only">
+          Twoje pytanie
+        </label>
+        <textarea
           id={inputId}
-          rows={3}
+          rows={2}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
@@ -156,17 +175,16 @@ export function AssistantChat({
               ask(question);
             }
           }}
-          placeholder="Np. kiedy należy przeprowadzić rozmowę oceniającą?"
+          placeholder="Zadaj pytanie, np. kiedy należy przeprowadzić rozmowę oceniającą?"
           aria-describedby={`${inputId}-hint`}
-          className="min-h-24 resize-none border-border bg-muted text-[13px] leading-[19px]"
+          className="resize-none bg-transparent text-[13px] leading-[19px] outline-none placeholder:text-faint-foreground"
         />
         <div className="flex items-center justify-between gap-2">
-          <span id={`${inputId}-hint`} title="Shift+Enter — nowa linia" className="text-[11px] font-medium text-muted-foreground">
-            Enter — wyślij
+          <span id={`${inputId}-hint`} className="text-xs leading-4 text-faint-foreground">
+            Enter — wyślij · Shift+Enter — nowa linia
           </span>
-          <Button type="submit" disabled={busy || !question.trim()}>
-            {busy ? "Szukam…" : "Zapytaj"}
-            <ArrowRight aria-hidden absoluteStrokeWidth strokeWidth={2} />
+          <Button type="submit" size="icon-sm" disabled={busy || !question.trim()} aria-label="Wyślij pytanie">
+            <ArrowUp aria-hidden absoluteStrokeWidth strokeWidth={1.6} />
           </Button>
         </div>
       </form>
@@ -191,7 +209,7 @@ function Answer({ id, res, compact }: { id: string; res: AskResponse; compact: b
     <div className="flex flex-col gap-2">
       {note && (
         <Alert variant={res.confidence === "none" ? "warning" : "info"}>
-          <span className="font-bold">
+          <span className="font-medium">
             {res.confidence === "none" ? "Nie wiem. " : "Uwaga. "}
           </span>
           {note}
@@ -216,7 +234,7 @@ function Answer({ id, res, compact }: { id: string; res: AskResponse; compact: b
       </div>
       {res.citations.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-bold text-muted-foreground">Źródła</p>
+          <p className="mb-1.5 text-xs font-medium text-faint-foreground">Źródła</p>
           <ul className="flex flex-col gap-1">
             {res.citations.map((c) => (
               <CitationItem
@@ -257,7 +275,7 @@ function CitationItem({
         onClick={onToggle}
         className="flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-muted"
       >
-        <span className="font-black text-primary">{citation.marker}</span>
+        <span className="font-medium text-primary">{citation.marker}</span>
         <span className="flex-1">
           {citation.source}
           {citation.page != null && <span className="text-muted-foreground">, s. {citation.page}</span>}

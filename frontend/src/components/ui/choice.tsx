@@ -7,12 +7,12 @@ export function RadioDot({ checked, className }: { checked: boolean; className?:
     <span
       aria-hidden
       className={cn(
-        "flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 bg-card",
-        checked ? "border-primary" : "border-border-strong",
+        "flex size-[18px] shrink-0 items-center justify-center rounded-full bg-card",
+        checked ? "border-[1.5px] border-primary" : "border border-border-strong",
         className,
       )}
     >
-      {checked && <span className="size-2.5 rounded-full bg-primary" />}
+      {checked && <span className="size-2 rounded-full bg-primary" />}
     </span>
   );
 }
@@ -23,17 +23,17 @@ export function CheckSquare({ checked, className }: { checked: boolean; classNam
     <span
       aria-hidden
       className={cn(
-        "flex size-[22px] shrink-0 items-center justify-center rounded-[6px]",
-        checked ? "bg-primary text-primary-foreground" : "border-2 border-border-strong bg-card",
+        "flex size-[18px] shrink-0 items-center justify-center rounded-sm",
+        checked ? "bg-primary text-primary-foreground" : "border border-border-strong bg-card",
         className,
       )}
     >
-      {checked && <Check absoluteStrokeWidth strokeWidth={2.5} className="size-3.5" />}
+      {checked && <Check absoluteStrokeWidth strokeWidth={2} className="size-3" />}
     </span>
   );
 }
 
-/** Small filled circle with a check mark, used for completed items. */
+/** Filled circle with a check mark, used for completed items. */
 export function CheckDot({ className }: { className?: string }) {
   return (
     <span
@@ -43,7 +43,7 @@ export function CheckDot({ className }: { className?: string }) {
         className,
       )}
     >
-      <Check absoluteStrokeWidth strokeWidth={2.5} className="size-[11px]" />
+      <Check absoluteStrokeWidth strokeWidth={2} className="size-[11px]" />
     </span>
   );
 }

@@ -3,8 +3,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { PageHeader } from "@/components/app-shell";
+import { ICON, PageHeader } from "@/components/app-shell";
 import { EmployeeCombobox } from "@/components/employee-combobox";
+import { StepCardSkeleton } from "@/components/loading-states";
+import { LoadingRegion } from "@/components/ui/skeleton";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,13 @@ import { cn } from "@/lib/utils";
 
 export default function NewAssessmentPage() {
   return (
-    <Suspense fallback={<p className="p-8 text-muted-foreground">Ładowanie…</p>}>
+    <Suspense
+      fallback={
+        <LoadingRegion label="Wczytywanie formularza" className="px-10 py-8">
+          <StepCardSkeleton />
+        </LoadingRegion>
+      }
+    >
       <NewAssessmentForm />
     </Suspense>
   );
@@ -37,8 +45,8 @@ const TYPE_OPTIONS: { type: ProcessType; sheet: string; hint: string }[] = [
 ];
 
 const FLOW = [
-  ["Opis stanowiska", "Opcjonalnie wklej OSP — dostaniesz sugestie kryteriów."],
-  ["Kryteria", "Wybierz kompetencje do oceny."],
+  ["Opis stanowiska", "Opcjonalnie wklej OSP — asystent zasugeruje kryteria."],
+  ["Kryteria", "Wybierz kompetencje, na których oprzesz ocenę."],
   ["Ocena zachowań", "Dla każdego wskaźnika wybierz opis zachowania."],
   ["Podsumowanie", "Zatwierdź poziom dla każdej kompetencji."],
   ["Rozmowa", "Omów ocenę z pracownikiem."],
@@ -75,23 +83,23 @@ function NewAssessmentForm() {
     <>
       <PageHeader
         title="Nowa ocena"
-        description="Wybierz rodzaj oceny i pracownika. Resztę poprowadzimy krok po kroku."
+        description="Wybierz rodzaj oceny i pracownika — resztę przeprowadzimy krok po kroku."
       />
       <div className="flex items-start gap-6 px-10 pb-12 pt-6">
         <Card className="min-w-0 flex-1 p-7">
-          <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-            <fieldset className="flex flex-col gap-4">
-              <legend className="mb-4 text-base font-black">Rodzaj oceny</legend>
+          <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
+            <fieldset className="flex flex-col gap-2.5">
+              <legend className="mb-2.5 text-[13px] font-medium leading-[19px]">Rodzaj oceny</legend>
               {TYPE_OPTIONS.map((o) => {
                 const checked = type === o.type;
                 return (
                   <label
                     key={o.type}
                     className={cn(
-                      "flex cursor-pointer items-start gap-4 rounded-xl p-[18px] transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
+                      "flex cursor-pointer items-start gap-3.5 rounded-lg p-4 transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary/25",
                       checked
-                        ? "border-2 border-primary bg-primary-soft"
-                        : "border bg-card hover:border-primary-light",
+                        ? "border-[1.5px] border-primary bg-primary-soft"
+                        : "border border-border-strong bg-card hover:bg-subtle",
                     )}
                   >
                     <input
@@ -100,25 +108,23 @@ function NewAssessmentForm() {
                       value={o.type}
                       checked={checked}
                       onChange={() => setType(o.type)}
-                      className="peer sr-only"
+                      className="sr-only"
                     />
-                    <RadioDot checked={checked} />
+                    <RadioDot checked={checked} className="mt-0.5" />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="flex items-center gap-2 text-[17px] font-black">
+                      <span className="flex items-center gap-2 font-semibold">
                         {TYPE_LABELS[o.type]}
-                        <Badge variant={checked ? "onSoft" : "default"}>{o.sheet}</Badge>
+                        <Badge>{o.sheet}</Badge>
                       </span>
-                      <span className="text-[13px] font-medium leading-[19px] text-muted-foreground">
-                        {o.hint}
-                      </span>
+                      <span className="text-[13px] leading-[19px] text-muted-foreground">{o.hint}</span>
                     </span>
                   </label>
                 );
               })}
             </fieldset>
 
-            <div className="mt-1 flex flex-col gap-4">
-              <label htmlFor="employee" className="text-base font-black">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="employee" className="text-[13px] font-medium leading-[19px]">
                 Pracownik
               </label>
               <EmployeeCombobox
@@ -135,10 +141,12 @@ function NewAssessmentForm() {
 
             {error && <Alert variant="danger">{error}</Alert>}
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="h-px bg-border" />
+
+            <div className="flex items-center gap-2">
               <Button type="submit" disabled={busy}>
                 {busy ? "Tworzenie…" : "Rozpocznij ocenę"}
-                <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
+                <ArrowRight {...ICON} />
               </Button>
               <Button type="button" variant="ghost" onClick={() => router.back()}>
                 Anuluj
@@ -147,21 +155,28 @@ function NewAssessmentForm() {
           </form>
         </Card>
 
-        <Card className="flex w-80 shrink-0 flex-col gap-3.5 p-6">
-          <h2 className="text-base font-black">Jak przebiega ocena</h2>
-          <ol className="flex flex-col gap-3.5">
+        <Card className="flex w-[340px] shrink-0 flex-col gap-4 p-6">
+          <h2 className="text-[15px] font-semibold leading-[22px]">Jak przebiega ocena</h2>
+          <ol className="flex flex-col">
             {FLOW.map(([title, hint], i) => (
-              <li key={title} className="flex items-start gap-3">
-                <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-black text-primary">
-                  {i + 1}
+              <li key={title} className="flex gap-3">
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border-strong bg-card text-xs font-medium text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  {i < FLOW.length - 1 && <span aria-hidden className="w-px flex-1 bg-border" />}
                 </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold">{title}</span>
-                  <span className="text-xs font-medium leading-[17px] text-muted-foreground">{hint}</span>
+                <span className={cn("flex flex-1 flex-col gap-0.5 pt-0.5", i < FLOW.length - 1 && "pb-4")}>
+                  <span className="text-[13px] font-medium leading-[19px]">{title}</span>
+                  <span className="text-xs leading-4 text-muted-foreground">{hint}</span>
                 </span>
               </li>
             ))}
           </ol>
+          <div className="h-px bg-border" />
+          <p className="text-xs leading-4 text-faint-foreground">
+            Ok. 30 minut. Postęp zapisuje się automatycznie — możesz wrócić w dowolnym momencie.
+          </p>
         </Card>
       </div>
     </>

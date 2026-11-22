@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FilePlus, LayoutGrid, LogOut, MessageSquare, Users, type LucideIcon } from "lucide-react";
+import { BootScreen } from "@/components/loading-states";
 import { Avatar } from "@/components/process-badges";
 import { api, API_MODE, type Role } from "@/lib/api";
 import { ROLE_LABELS, homeFor, useAuth } from "@/lib/auth";
 import { ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
@@ -30,6 +31,28 @@ const GUARDS: { prefix: string; roles: Role[] }[] = [
   { prefix: ROUTES.assessments, roles: ["przelozony", "admin"] },
 ];
 
+export const ICON = { absoluteStrokeWidth: true, strokeWidth: 1.6, "aria-hidden": true } as const;
+
+const BRAND_SIZES = {
+  sidebar: { mark: "h-10", gap: "gap-2.5", title: "text-2xl leading-7", tagline: "whitespace-nowrap text-[11px] leading-4" },
+  login: { mark: "h-16", gap: "gap-4", title: "text-[40px] leading-[44px]", tagline: "text-sm leading-5" },
+} as const;
+
+/** Logo lockup: owl mark, "SOWA" wordmark in the brand typeface and the tagline. */
+export function SowaBrand({ size = "sidebar", as: Title = "span" }: { size?: keyof typeof BRAND_SIZES; as?: "span" | "h1" }) {
+  const s = BRAND_SIZES[size];
+  return (
+    <span className={cn("flex items-center", s.gap)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/sowa-logo.svg" alt="" width={182} height={185} className={cn("w-auto shrink-0", s.mark)} />
+      <span className="flex flex-col gap-0.5">
+        <Title className={cn("font-brand font-bold tracking-[0.02em] text-primary-hover", s.title)}>SOWA</Title>
+        <span className={cn("text-muted-foreground", s.tagline)}>System Oceny, Wsparcia i Analizy</span>
+      </span>
+    </span>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { session, ready, logout } = useAuth();
   const router = useRouter();
@@ -46,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [ready, session, hrOnDashboard, router]);
 
   if (!ready || !session) {
-    return <p className="p-8 text-muted-foreground">Ładowanie…</p>;
+    return <BootScreen />;
   }
 
   const items = NAV.filter((n) => n.roles.includes(session.role));
@@ -60,90 +83,79 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside
-        className="sticky top-0 z-10 flex h-screen shrink-0 flex-col overflow-y-auto bg-card px-4 pb-5 pt-7 shadow-sidebar"
+        className="sticky top-0 z-10 flex h-screen shrink-0 flex-col justify-between overflow-y-auto border-r bg-subtle px-3 pb-4 pt-5"
         style={{ width: "var(--kk-sidebar-width)" }}
       >
-        <Link href={homeFor(session.role)} className="mb-7 flex items-center gap-3 rounded-md pl-2">
-          {/* Static brand mark exported from the Figma file. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/sowa-logo.svg" alt="" width={38} height={38} className="size-[38px] shrink-0" />
-          <span className="flex flex-col gap-px">
-            <span className="text-[22px] font-black leading-[26px] tracking-[0.06em] text-primary">SOWA</span>
-            <span className="text-[11px] font-medium leading-[14px] text-muted-foreground">
-              System Oceny, Wsparcia i Analizy
-            </span>
-          </span>
-        </Link>
+        <div className="flex flex-col gap-7">
+          <Link href={homeFor(session.role)} aria-label="SOWA — pulpit" className="rounded-md">
+            <SowaBrand />
+          </Link>
 
-        <nav aria-label="Główna nawigacja">
-          <p className="px-3.5 pb-2 pt-[18px] text-[11px] font-bold tracking-[0.08em] text-faint-foreground">
-            MENU
-          </p>
-          <ul className="flex flex-col gap-1">
-            {items.map((n) => {
-              const active = n.href === activeHref;
-              const Icon = n.icon;
-              return (
-                <li key={n.href}>
-                  <Link
-                    href={n.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md py-[11px] pl-3.5 pr-3 text-[15px] transition-colors",
-                      active
-                        ? "bg-primary font-bold text-primary-foreground shadow-primary"
-                        : "font-medium text-foreground hover:bg-muted",
-                    )}
-                  >
-                    <Icon
-                      aria-hidden
-                      absoluteStrokeWidth
-                      strokeWidth={2}
-                      className={cn("size-5 shrink-0", active ? "text-primary-foreground" : "text-muted-foreground")}
-                    />
-                    {n.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="flex-1" />
-
-        {session.role !== "hr" && <CycleCard />}
-
-        <div className="mt-4 flex items-center gap-3 border-t pl-2 pr-1 pt-4">
-          <Avatar name={session.display_name} tone="solid" className="size-10 text-sm font-bold" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold" title={session.display_name}>
-              {session.display_name.replace(/\s*\(.*\)/, "")}
+          <nav aria-label="Główna nawigacja" className="flex flex-col gap-0.5">
+            <p className="px-2.5 pb-1.5 text-[11px] font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground">
+              Ocena
             </p>
-            <p className="text-xs font-medium text-muted-foreground">{ROLE_LABELS[session.role]}</p>
-          </div>
-          <button
-            type="button"
-            aria-label="Wyloguj"
-            title="Wyloguj"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            onClick={() => {
-              logout();
-              router.replace(ROUTES.login);
-            }}
-          >
-            <LogOut aria-hidden absoluteStrokeWidth strokeWidth={2} className="size-[18px]" />
-          </button>
+            <ul className="flex flex-col gap-0.5">
+              {items.map((n) => {
+                const active = n.href === activeHref;
+                const Icon = n.icon;
+                return (
+                  <li key={n.href}>
+                    <Link
+                      href={n.href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] leading-[19px] transition-colors",
+                        active
+                          ? "bg-muted font-medium text-foreground"
+                          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      )}
+                    >
+                      <Icon {...ICON} className="size-[18px] shrink-0" />
+                      {n.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
-        {API_MODE === "mock" && (
-          <p className="mt-3 px-2 text-[11px] leading-4 text-muted-foreground">
-            Tryb demonstracyjny – dane przykładowe zapisane w przeglądarce.
-          </p>
-        )}
+
+        <div className="flex flex-col gap-3">
+          {session.role !== "hr" && <CycleCard />}
+          <div className="h-px bg-border" />
+          <div className="flex items-center gap-2.5 px-1.5 py-0.5">
+            <Avatar name={session.display_name} tone="accent" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium leading-[19px]" title={session.display_name}>
+                {session.display_name.replace(/\s*\(.*\)/, "")}
+              </p>
+              <p className="text-xs leading-4 text-faint-foreground">{ROLE_LABELS[session.role]}</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Wyloguj"
+              title="Wyloguj"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => {
+                logout();
+                router.replace(ROUTES.login);
+              }}
+            >
+              <LogOut {...ICON} className="size-[18px]" />
+            </button>
+          </div>
+          {API_MODE === "mock" && (
+            <p className="px-2 text-[11px] leading-4 text-faint-foreground">
+              Tryb demonstracyjny – dane przykładowe zapisane w przeglądarce.
+            </p>
+          )}
+        </div>
       </aside>
       <main id="main" className="min-w-0 flex-1" tabIndex={-1}>
         {forbidden ? (
           <div className="px-10 py-8">
-            <h1 className="mb-2 text-[28px] font-black">Brak dostępu</h1>
+            <h1 className="mb-2 text-display">Brak dostępu</h1>
             <p className="text-muted-foreground">
               Ta część aplikacji nie jest dostępna dla roli „{ROLE_LABELS[session.role]}”.
             </p>
@@ -166,26 +178,27 @@ function CycleCard() {
   const year = new Date(last ?? Date.now()).getFullYear();
   const pct = Math.round((done / processes.length) * 100);
   return (
-    <section aria-label={`Cykl ocen ${year}`} className="flex flex-col gap-2.5 rounded-xl bg-primary-soft p-[18px]">
-      <p className="flex items-center gap-2 text-sm">
-        <span className="flex-1 font-bold">Cykl ocen {year}</span>
-        <span className="font-black text-primary">
-          {done}/{processes.length}
+    <section aria-label={`Cykl ocen ${year}`} className="flex flex-col gap-2 rounded-lg border bg-card p-3">
+      <p className="flex items-center justify-between">
+        <span className="text-[13px] font-medium leading-[19px]">Cykl ocen {year}</span>
+        <span className="text-xs text-muted-foreground">
+          {done} z {processes.length} ocen
         </span>
       </p>
       <div
-        className="h-1.5 overflow-hidden rounded-full bg-card"
+        className="h-1 overflow-hidden rounded-[2px] bg-muted"
         role="progressbar"
         aria-valuenow={done}
         aria-valuemin={0}
         aria-valuemax={processes.length}
         aria-label="Zakończone oceny"
       >
-        <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-[2px] bg-primary" style={{ width: `${pct}%` }} />
       </div>
       {last && (
-        <p className="text-xs font-medium leading-4 text-muted-foreground">
-          Termin ostatniej oceny: {formatDate(last)}
+        <p className="text-xs leading-4 text-faint-foreground">
+          Termin ostatniej oceny:{" "}
+          {new Date(last).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })}
         </p>
       )}
     </section>
@@ -202,10 +215,10 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex items-start justify-between gap-4 px-10 pt-8">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-[28px] font-black leading-tight">{title}</h1>
-        {description && <p className="text-[15px] font-medium text-muted-foreground">{description}</p>}
+    <header className="flex items-center justify-between gap-4 px-10 pt-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-display">{title}</h1>
+        {description && <p className="text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </header>

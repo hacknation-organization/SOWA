@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { ListSkeleton } from "@/components/loading-states";
 import { Alert } from "@/components/ui/alert";
+import { LoadingRegion } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +46,8 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [ownQuestions, setOwnQuestions] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
-  const [showAi, setShowAi] = useState(true);
+  // AI suggestions are opt-in: nothing is requested until the user asks to see them.
+  const [showAi, setShowAi] = useState(false);
 
   const suggestQuestions = useCallback(async () => {
     setQuestionsBusy(true);
@@ -60,10 +63,6 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
       setQuestionsBusy(false);
     }
   }, [process.id]);
-
-  useEffect(() => {
-    void suggestQuestions();
-  }, [suggestQuestions]);
 
   const aiQuestions = showAi ? questions : [];
 
@@ -110,11 +109,12 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 @3xl:grid-cols-2">
-      <Card className="flex h-[28rem] flex-col @3xl:sticky @3xl:top-6 @3xl:h-[70vh]">
+    // Two columns share the height left below the header and stepper, so the step fits the screen.
+    <div className="grid grid-cols-1 gap-5 @3xl:h-[max(28rem,calc(100dvh-17.5rem))] @3xl:grid-cols-2">
+      <Card className="flex h-[28rem] min-h-0 flex-col @3xl:h-full">
         <CardHeader>
           <CardTitle>{showAi ? "Zaproponowane pytania" : "Twoje pytania"}</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] leading-[19px] text-muted-foreground">
             {showAi
               ? "Asystent proponuje pytania na podstawie Twoich ocen. To propozycje – dostosuj je do sytuacji."
               : "Propozycje asystenta są ukryte. Dodaj własne pytania do rozmowy."}
@@ -133,7 +133,9 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
         <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1 overflow-y-auto">
             {showAi && questionsBusy && !questions.length && (
-              <p className="mb-3 text-sm text-muted-foreground">Przygotowuję pytania…</p>
+              <LoadingRegion label="Przygotowuję pytania" className="mb-3">
+                <ListSkeleton rows={5} />
+              </LoadingRegion>
             )}
             {showAi && questionsError && !questions.length && (
               <Alert variant="warning" className="mb-3">
@@ -141,19 +143,19 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
               </Alert>
             )}
             {!showAi && !ownQuestions.length && (
-              <p className="text-sm text-muted-foreground">Nie dodano jeszcze własnych pytań.</p>
+              <p className="text-[13px] leading-[19px] text-muted-foreground">Nie dodano jeszcze własnych pytań.</p>
             )}
             {aiQuestions.length + ownQuestions.length > 0 && (
-              <ol className="divide-y rounded-md border">
+              <ol className="divide-y overflow-hidden rounded-lg border">
                 {[...aiQuestions, ...ownQuestions].map((q, i) => {
                   const ownIndex = i - aiQuestions.length;
                   return (
-                    <li key={i} className="flex items-start gap-3 px-3 py-2.5 text-sm">
-                      <span className="w-5 shrink-0 text-right font-medium text-muted-foreground">{i + 1}.</span>
+                    <li key={i} className="flex items-start gap-3 px-3.5 py-2.5 text-[13px] leading-[19px]">
+                      <span className="w-5 shrink-0 text-right text-faint-foreground">{i + 1}.</span>
                       <span className="flex-1">{q}</span>
                       {ownIndex >= 0 && (
                         <>
-                          <Badge variant="muted">Twoje</Badge>
+                          <Badge>Twoje</Badge>
                           <button
                             type="button"
                             className="text-xs text-muted-foreground underline hover:text-foreground"
@@ -183,7 +185,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
               aria-label="Własne pytanie"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Dodaj własne pytanie…"
+              placeholder="Dodaj własne pytanie"
             />
             <Button type="submit" variant="outline" disabled={!draft.trim()}>
               Dodaj
@@ -192,18 +194,19 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
         </CardContent>
       </Card>
 
-      <Card className="flex flex-col gap-4 p-6">
-        <div className="flex flex-col gap-2">
+      <Card className="flex min-h-0 flex-col gap-4 p-6 @3xl:h-full">
+        <div className="flex min-h-0 flex-[2] flex-col gap-2">
           <Label htmlFor="notes">Notatki z rozmowy</Label>
           <Textarea
             id="notes"
-            rows={8}
+            rows={5}
+            className="min-h-24 flex-1 resize-none"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Najważniejsze ustalenia, stanowisko pracownika, uwagi."
           />
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex min-h-0 flex-[3] flex-col gap-2">
           <div className="flex items-end justify-between gap-2">
             <Label htmlFor="plan">Plan rozwoju</Label>
             <Button size="sm" variant="outline" onClick={suggestPlan} disabled={planBusy}>
@@ -212,14 +215,15 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           </div>
           <Textarea
             id="plan"
-            rows={14}
+            rows={7}
+            className="min-h-32 flex-1 resize-none"
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
             placeholder="Cele rozwojowe, działania, wsparcie, termin przeglądu."
           />
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2.5 border-t pt-4">
           <Button variant="outline" onClick={() => goTo("summary")}>
             Wstecz
           </Button>
@@ -229,7 +233,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           </Button>
           <Button onClick={() => persist("document")} disabled={busy}>
             Dalej: dokument
-            <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
+            <ArrowRight absoluteStrokeWidth strokeWidth={1.6} aria-hidden />
           </Button>
         </div>
       </Card>

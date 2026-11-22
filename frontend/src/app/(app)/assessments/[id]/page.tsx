@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { PanelRight } from "lucide-react";
+import { useState } from "react";
+import { X } from "lucide-react";
 import { AssistantChat } from "@/components/assistant-chat";
-import { Deadline, StatusBadge } from "@/components/process-badges";
+import { WizardSkeleton } from "@/components/loading-states";
+import { Deadline, StatusBadge, typeLabel } from "@/components/process-badges";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AssessmentStep } from "@/components/wizard/assessment-step";
@@ -16,12 +17,10 @@ import { JobDescriptionStep } from "@/components/wizard/job-description-step";
 import { Stepper } from "@/components/wizard/stepper";
 import { SummaryStep } from "@/components/wizard/summary-step";
 import type { StepProps } from "@/components/wizard/types";
-import { api, STAGES, TYPE_LABELS, type ProcessStage } from "@/lib/api";
+import { api, STAGES, type ProcessStage } from "@/lib/api";
 import { competencyDisplayName } from "@/lib/domain";
 import { ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
-
-const WIDE_SCREEN_MIN_WIDTH = 1440;
 
 const STEP_COMPONENTS: Record<ProcessStage, React.ComponentType<StepProps>> = {
   job_description: JobDescriptionStep,
@@ -52,11 +51,7 @@ export default function WizardPage() {
   const [step, setStep] = useState<ProcessStage | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  useEffect(() => {
-    if (window.innerWidth >= WIDE_SCREEN_MIN_WIDTH) setAssistantOpen(true);
-  }, []);
-
-  if (loading && !data) return <p className="px-10 py-8 text-muted-foreground">Ładowanie oceny…</p>;
+  if (loading && !data) return <WizardSkeleton />;
   if (error || !data)
     return (
       <div className="flex flex-col items-start gap-4 px-10 py-8">
@@ -81,38 +76,36 @@ export default function WizardPage() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="flex min-w-0 flex-1 flex-col gap-6 px-10 pb-12 pt-7">
-        <header className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-[13px]">
-            <Link href={ROUTES.dashboard} className="font-bold text-primary hover:underline">
-              Pulpit
-            </Link>
-            <span aria-hidden className="text-faint-foreground">
-              /
-            </span>
-            <span className="font-medium text-muted-foreground">
-              {TYPE_LABELS[process.type]}
-              {process.form ? ` – arkusz ${process.form}` : ""}
-            </span>
-            <span className="flex-1" />
+      <div className="flex min-w-0 flex-1 flex-col gap-6 px-8 pb-12 pt-8">
+        <header className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <nav aria-label="Okruszki" className="flex items-center gap-1.5 text-[13px] leading-[19px]">
+              <Link href={ROUTES.dashboard} className="text-muted-foreground hover:text-foreground hover:underline">
+                Pulpit
+              </Link>
+              <span aria-hidden className="text-faint-foreground">
+                /
+              </span>
+              <span className="text-muted-foreground">{typeLabel(process.type, process.form)}</span>
+            </nav>
+            <h1 className="text-display">
+              {employee?.full_name ?? process.employee_name ?? "Pracownik"}
+            </h1>
+            <p className="text-[13px] leading-[19px] text-muted-foreground">
+              {meta && `${meta} · `}termin <Deadline iso={process.deadline} done={process.status === "completed"} />
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
             <StatusBadge status={process.status} />
             <Button
-              variant="surface"
-              size="sm"
+              variant="outline"
               aria-expanded={assistantOpen}
               aria-controls="assistant-panel"
               onClick={() => setAssistantOpen((open) => !open)}
             >
-              <PanelRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
               {assistantOpen ? "Ukryj asystenta" : "Pokaż asystenta"}
             </Button>
           </div>
-          <h1 className="text-[26px] font-black leading-8">
-            {employee?.full_name ?? process.employee_name ?? "Pracownik"}
-          </h1>
-          <p className="text-sm font-medium text-muted-foreground">
-            {meta && `${meta} · `}termin: <Deadline iso={process.deadline} done={process.status === "completed"} />
-          </p>
         </header>
 
         <Stepper
@@ -126,12 +119,15 @@ export default function WizardPage() {
           <h2 id="step-heading" tabIndex={-1} className="sr-only">
             Krok {stepIndex + 1}. {STAGES[stepIndex].label}
           </h2>
-          <Step
-            process={process}
-            competencies={competencies}
-            onProcess={(p) => setData({ ...data, process: p })}
-            goTo={goTo}
-          />
+          {/* Keyed by step so the entry animation replays on every step change. */}
+          <div key={current} className="kk-step-in">
+            <Step
+              process={process}
+              competencies={competencies}
+              onProcess={(p) => setData({ ...data, process: p })}
+              goTo={goTo}
+            />
+          </div>
         </section>
       </div>
 
@@ -139,12 +135,17 @@ export default function WizardPage() {
         <aside
           id="assistant-panel"
           aria-label="Asystent – zasady i przepisy"
-          className="sticky top-0 flex h-screen shrink-0 flex-col gap-[18px] border-l bg-card px-6 pb-6 pt-7"
+          className="sticky top-0 flex h-screen shrink-0 flex-col gap-5 border-l bg-card px-5 pb-5 pt-6"
           style={{ width: "var(--kk-assistant-width)" }}
         >
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-lg font-black">Asystent</h2>
-            <p className="text-xs font-medium text-muted-foreground">Zasady i wymagania formalne</p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-[17px] font-semibold leading-6 tracking-[-0.1px]">Asystent</h2>
+              <p className="text-[13px] leading-[19px] text-muted-foreground">Zasady i wymagania formalne</p>
+            </div>
+            <Button variant="ghost" size="icon-sm" aria-label="Zamknij asystenta" onClick={() => setAssistantOpen(false)}>
+              <X absoluteStrokeWidth strokeWidth={1.6} aria-hidden className="!size-[18px]" />
+            </Button>
           </div>
           <div className="min-h-0 flex-1">
             <AssistantChat processId={process.id} allowModeSwitch={false} compact />

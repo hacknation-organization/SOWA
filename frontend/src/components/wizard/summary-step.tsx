@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Check, Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
+import { ICON } from "@/components/app-shell";
+import { SummarySkeleton } from "@/components/loading-states";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label, Select, Textarea } from "@/components/ui/form";
+import { Label, LabelHint, Select, Textarea } from "@/components/ui/form";
 import { api, LEVEL_LABELS, type CompetencySummary, type LevelValue } from "@/lib/api";
 import { LEVEL_POINTS } from "@/lib/domain";
 import { useApi } from "@/lib/use-api";
@@ -28,7 +30,7 @@ export function SummaryStep({ process, competencies, onProcess, goTo }: StepProp
   const { data, setData, error, loading } = useApi(() => api.getSummary(process.id), [process.id]);
   const [accepting, setAccepting] = useState(false);
 
-  if (loading && !data) return <p className="text-muted-foreground">Wyliczanie sugerowanych poziomów…</p>;
+  if (loading && !data) return <SummarySkeleton />;
   if (error || !data) return <Alert variant="danger">{error}</Alert>;
 
   const missing = data.filter((s) => s.manager_level == null);
@@ -58,53 +60,51 @@ export function SummaryStep({ process, competencies, onProcess, goTo }: StepProp
   }
 
   return (
-    <StepCard stage="summary" className="gap-[18px]">
-      <div className="flex items-start gap-3 rounded-lg bg-primary-soft px-4 py-3.5">
-        <Info aria-hidden absoluteStrokeWidth strokeWidth={2} className="mt-px size-5 shrink-0 text-primary" />
-        <p className="text-sm font-medium leading-[21px]">
-          System sugeruje poziom na podstawie wybranych zachowań.{" "}
-          <strong className="font-black">Ostateczną decyzję podejmujesz Ty</strong> — jeśli wybierzesz inny
-          poziom niż sugerowany, podaj uzasadnienie.
+    <StepCard stage="summary" description="Zatwierdź poziom dla każdej z wybranych kompetencji.">
+      <div className="flex items-start gap-3 rounded-lg bg-muted px-4 py-3">
+        <Info {...ICON} className="mt-px size-4 shrink-0 text-muted-foreground" />
+        <p className="text-[13px] leading-[19px] text-muted-foreground">
+          System sugeruje poziom na podstawie ocen wskaźników. Ostateczna decyzja należy do Ciebie — jeśli wybierzesz
+          inny poziom niż sugerowany, podaj uzasadnienie.
         </p>
       </div>
 
-      {data.map((s) => (
-        <DecisionCard
-          key={s.competency_id}
-          summary={s}
-          name={competencies.find((c) => c.id === s.competency_id)?.name ?? s.competency_id}
-          onSave={async (level, justification) => {
-            const updated = await api.setDecision(process.id, s.competency_id, { level, justification });
-            setData(updated);
-          }}
-        />
-      ))}
-
-      {missing.some((s) => s.suggested_level != null) && (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed px-4 py-3 text-[13px] font-medium">
-          <span className="flex-1">
-            Niezatwierdzone kompetencje: {missing.length}. Możesz przyjąć dla nich sugerowane poziomy jednym
-            kliknięciem.
-          </span>
-          <Button size="sm" variant="secondary" onClick={acceptSuggested} disabled={accepting}>
-            {accepting ? "Zapisywanie…" : "Przyjmij sugerowane poziomy"}
-          </Button>
-        </div>
-      )}
+      <div className="flex flex-col gap-4">
+        {data.map((s) => (
+          <DecisionCard
+            key={s.competency_id}
+            summary={s}
+            name={competencies.find((c) => c.id === s.competency_id)?.name ?? s.competency_id}
+            onRate={() => goTo("assessment")}
+            onSave={async (level, justification) => {
+              const updated = await api.setDecision(process.id, s.competency_id, { level, justification });
+              setData(updated);
+            }}
+          />
+        ))}
+      </div>
 
       <StepActions>
         <Button variant="outline" onClick={() => goTo("assessment")}>
           Wstecz
         </Button>
-        <span className="flex-1" />
-        {missing.length > 0 && (
-          <span id="summary-missing" className="text-[13px] font-medium text-muted-foreground">
-            Zatwierdź poziom dla wszystkich kompetencji (pozostało: {missing.length}).
-          </span>
+        {missing.some((s) => s.suggested_level != null) && (
+          <Button variant="ghost" onClick={acceptSuggested} disabled={accepting}>
+            {accepting ? "Zapisywanie…" : "Przyjmij sugerowane poziomy"}
+          </Button>
         )}
-        <Button onClick={next} disabled={missing.length > 0} aria-describedby={missing.length ? "summary-missing" : undefined}>
+        <span className="flex-1" />
+        <span id="summary-progress" className="text-xs text-faint-foreground">
+          Zatwierdzono {data.length - missing.length} z {data.length}
+        </span>
+        <Button
+          onClick={next}
+          disabled={missing.length > 0}
+          aria-describedby="summary-progress"
+          title={missing.length > 0 ? "Zatwierdź poziom dla wszystkich kompetencji" : undefined}
+        >
           Dalej: rozmowa
-          <ArrowRight absoluteStrokeWidth strokeWidth={2} aria-hidden />
+          <ArrowRight {...ICON} />
         </Button>
       </StepActions>
     </StepCard>
@@ -116,20 +116,11 @@ function LevelScale({ suggested }: { suggested: LevelValue | null }) {
     <div className="flex gap-1" aria-hidden>
       {LEVELS.map((l) => (
         <div key={l} className="flex flex-1 flex-col items-center gap-1.5">
+          <span className={cn("h-1 w-full rounded-[2px]", l === suggested ? "bg-primary" : "bg-muted")} />
           <span
             className={cn(
-              "h-2 w-full rounded-[4px]",
-              suggested == null || l > suggested
-                ? "bg-border"
-                : l === suggested
-                  ? "bg-brand-gradient"
-                  : "bg-primary-light",
-            )}
-          />
-          <span
-            className={cn(
-              "whitespace-nowrap text-[11px]",
-              l === suggested ? "font-black text-primary" : "font-medium text-muted-foreground",
+              "whitespace-nowrap text-xs leading-4",
+              l === suggested ? "font-medium text-primary" : "text-faint-foreground",
             )}
           >
             {SCALE_LABELS[l]}
@@ -144,10 +135,12 @@ function DecisionCard({
   summary: s,
   name,
   onSave,
+  onRate,
 }: {
   summary: CompetencySummary;
   name: string;
   onSave: (level: LevelValue, justification: string) => Promise<void>;
+  onRate: () => void;
 }) {
   const [level, setLevel] = useState<LevelValue | "">(s.manager_level ?? s.suggested_level ?? "");
   const [justification, setJustification] = useState(s.justification ?? "");
@@ -157,6 +150,7 @@ function DecisionCard({
   const id = s.competency_id;
   const differs = level !== "" && level !== s.suggested_level;
   const approved = s.manager_level != null && !editing;
+  const noRatings = s.suggested_level == null && s.rated === 0;
 
   async function save() {
     if (level === "") {
@@ -182,57 +176,64 @@ function DecisionCard({
   return (
     <section
       aria-labelledby={`comp-${id}`}
-      className={cn("flex flex-col gap-4 rounded-xl p-5", approved ? "border-2 border-primary" : "border")}
+      className={cn("flex flex-col gap-4 rounded-xl border p-5", approved && "border-primary-border")}
     >
-      <div className="flex items-center gap-2.5">
-        <div className="flex flex-col gap-0.5">
-          <h3 id={`comp-${id}`} className="text-[17px] font-black">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col">
+          <h3 id={`comp-${id}`} className="text-[15px] font-semibold leading-[22px]">
             {name}
           </h3>
-          <p className="text-[13px] font-medium text-muted-foreground">
+          <p className="text-xs leading-4 text-faint-foreground">
             Ocenione wskaźniki: {s.rated} z {s.total}
             {s.no_basis ? ` · brak podstaw: ${s.no_basis}` : ""}
           </p>
         </div>
-        <span className="flex-1" />
         {approved ? (
-          <Badge variant="solid" className="py-1 pl-2.5 pr-3 text-xs">
-            <Check aria-hidden absoluteStrokeWidth strokeWidth={2.5} className="size-3" />
-            Zatwierdzono
-          </Badge>
+          <Badge variant="accent">Zatwierdzono</Badge>
+        ) : noRatings ? (
+          <Badge variant="warning">Brak ocen wskaźników</Badge>
         ) : (
-          <Badge variant="outline" className="px-2.5 py-1 text-xs">
-            Do zatwierdzenia
-          </Badge>
+          <Badge>Do zatwierdzenia</Badge>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3.5">
-        <p className="flex items-center gap-2 text-sm">
-          {/* Figma "icon/sparkle" asset; it has no exact lucide equivalent. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/sparkle.svg" alt="" width={16} height={16} className="size-4" />
-          <span className="font-medium text-muted-foreground">Sugerowany poziom:</span>
-          <span className={cn("font-black", s.suggested_level ? "text-primary" : "text-foreground")}>
-            {s.suggested_level ? levelText(s.suggested_level) : "brak — za mało ocen"}
-          </span>
-        </p>
+      <div className="flex flex-col gap-3 rounded-lg border bg-subtle px-3.5 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] leading-[19px]">
+            <span className="text-muted-foreground">Sugerowany poziom: </span>
+            <span className="font-medium">
+              {s.suggested_level ? levelText(s.suggested_level) : "brak — za mało ocen"}
+            </span>
+          </p>
+          {noRatings && (
+            <Button variant="link" size="sm" onClick={onRate}>
+              Oceń wskaźniki
+              <ArrowRight {...ICON} />
+            </Button>
+          )}
+        </div>
         <LevelScale suggested={s.suggested_level} />
-        {!approved && s.explanation && (
-          <p className="text-[13px] font-medium leading-[19px] text-muted-foreground">{s.explanation}</p>
+        {noRatings ? (
+          <p className="text-xs leading-4 text-faint-foreground">
+            Oceń przynajmniej jeden wskaźnik, aby system mógł zasugerować poziom.
+          </p>
+        ) : (
+          s.no_basis > 0 && (
+            <p className="text-xs leading-4 text-faint-foreground">
+              Wskaźnik oznaczony jako „brak podstaw” nie wpływa na sugerowany poziom.
+            </p>
+          )
         )}
       </div>
 
       {approved ? (
-        <div className="flex items-start gap-2 text-sm">
-          <p className="flex-1">
-            <span className="font-medium text-muted-foreground">Twoja decyzja: </span>
-            <span className="font-black">{levelText(s.manager_level!)}</span>
-            {s.justification && (
-              <span className="mt-1 block text-[13px] font-medium text-muted-foreground">{s.justification}</span>
-            )}
+        <div className="flex items-start gap-2">
+          <p className="flex-1 text-[13px] leading-[19px]">
+            <span className="text-muted-foreground">Twoja decyzja: </span>
+            <span className="font-medium">{levelText(s.manager_level!)}</span>
+            {s.justification && <span className="mt-1 block text-muted-foreground">{s.justification}</span>}
           </p>
-          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+          <Button variant="ghost" onClick={() => setEditing(true)}>
             Zmień
           </Button>
         </div>
@@ -257,10 +258,10 @@ function DecisionCard({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor={`just-${id}`}>
-                Uzasadnienie{" "}
-                <span className={cn("font-medium", differs ? "text-destructive" : "text-muted-foreground")}>
-                  {differs ? "(wymagane — poziom różni się od sugerowanego)" : "(opcjonalnie)"}
-                </span>
+                Uzasadnienie
+                <LabelHint className={cn(differs && "text-warning")}>
+                  {differs ? "wymagane — inny poziom niż sugerowany" : "opcjonalnie"}
+                </LabelHint>
               </Label>
               <Textarea
                 id={`just-${id}`}
@@ -275,7 +276,7 @@ function DecisionCard({
           </div>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="flex gap-2">
-            <Button onClick={save} disabled={busy}>
+            <Button onClick={save} disabled={busy || level === ""}>
               {busy ? "Zapisywanie…" : "Zatwierdź poziom"}
             </Button>
             {s.manager_level != null && (

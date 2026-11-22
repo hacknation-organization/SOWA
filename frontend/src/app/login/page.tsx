@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { SowaBrand } from "@/components/app-shell";
 import { useState } from "react";
 import { API_MODE, type Role } from "@/lib/api";
 import { ROLE_LABELS, homeFor, useAuth } from "@/lib/auth";
@@ -40,10 +41,10 @@ export default function LoginPage() {
   return (
     <main id="main" className="flex min-h-screen items-center justify-center p-8">
       <div className="w-full max-w-3xl">
-        <h1 className="mb-1 text-2xl font-semibold">Kompas kompetencji</h1>
-        <p className="mb-6 text-muted-foreground">
-          Wsparcie przełożonych w pierwszej ocenie i ocenie okresowej w służbie cywilnej.
-        </p>
+        <div className="mb-8 flex flex-col gap-3">
+          <SowaBrand size="login" as="h1" />
+          <p className="text-muted-foreground">Pierwsza ocena i ocena okresowa w służbie cywilnej.</p>
+        </div>
 
         <div className="grid grid-cols-2 gap-6">
           <Card>
@@ -59,10 +60,10 @@ export default function LoginPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => submit(role, DEMO_PASSWORD)}
-                      className="w-full rounded-md border p-3 text-left hover:bg-muted disabled:opacity-50"
+                      className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-subtle disabled:opacity-50"
                     >
                       <span className="block font-medium">{ROLE_LABELS[role]}</span>
-                      <span className="block text-sm text-muted-foreground">{description}</span>
+                      <span className="block text-[13px] leading-[19px] text-muted-foreground">{description}</span>
                     </button>
                   </li>
                 ))}

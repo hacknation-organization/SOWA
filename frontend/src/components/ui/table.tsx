@@ -4,13 +4,13 @@ import { cn } from "@/lib/utils";
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
+      <table className={cn("w-full caption-bottom text-[13px] leading-[19px]", className)} {...props} />
     </div>
   );
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead className={cn("bg-muted", className)} {...props} />;
+  return <thead className={cn("border-b bg-subtle", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -25,7 +25,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-10 px-6 text-left align-middle text-[11px] font-bold uppercase tracking-[0.06em] text-muted-foreground",
+        "h-9 px-6 text-left align-middle text-[11px] font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground",
         className,
       )}
       {...props}
@@ -34,7 +34,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-6 py-4 align-middle", className)} {...props} />;
+  return <td className={cn("px-6 py-3.5 align-middle", className)} {...props} />;
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {

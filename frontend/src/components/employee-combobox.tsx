@@ -5,7 +5,7 @@ import { ChevronDown, Search } from "lucide-react";
 import type { Employee } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const ICON = { absoluteStrokeWidth: true, strokeWidth: 2, "aria-hidden": true } as const;
+const ICON = { absoluteStrokeWidth: true, strokeWidth: 1.6, "aria-hidden": true } as const;
 
 /** Searchable employee picker (ARIA combobox pattern with a listbox popup). */
 export function EmployeeCombobox({
@@ -63,14 +63,12 @@ export function EmployeeCombobox({
     <div className="relative">
       <div
         className={cn(
-          "flex items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15",
-          invalid ? "border-destructive" : "border-input hover:border-primary-light",
+          "flex h-[43px] items-center gap-2.5 rounded-md border bg-card px-3 transition-colors focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15",
+          invalid ? "border-destructive" : "border-input hover:border-faint-foreground",
         )}
         onClick={() => inputRef.current?.focus()}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-          <Search {...ICON} className="size-4 text-muted-foreground" />
-        </span>
+        <Search {...ICON} className="size-4 shrink-0 text-muted-foreground" />
         <input
           ref={inputRef}
           id={id}
@@ -82,7 +80,7 @@ export function EmployeeCombobox({
           aria-invalid={invalid || undefined}
           autoComplete="off"
           value={display}
-          placeholder="Wybierz z listy lub wpisz nazwisko…"
+          placeholder="Wybierz z listy lub wpisz nazwisko"
           onChange={(e) => {
             setText(e.target.value);
             setHighlight(0);
@@ -91,11 +89,11 @@ export function EmployeeCombobox({
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKeyDown}
-          className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-faint-foreground"
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-faint-foreground"
         />
         <ChevronDown
           {...ICON}
-          className={cn("size-[18px] shrink-0 transition-transform", open && "rotate-180")}
+          className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
         />
       </div>
       {open && (
@@ -103,7 +101,7 @@ export function EmployeeCombobox({
           id={listId}
           role="listbox"
           aria-label="Pracownicy"
-          className="absolute z-20 mt-1.5 max-h-72 w-full overflow-y-auto rounded-lg border bg-card p-1 shadow-card"
+          className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border bg-card p-1 shadow-[0_8px_24px_rgb(23_24_27/0.08)]"
         >
           {options.length === 0 ? (
             <li className="px-3 py-2.5 text-sm text-muted-foreground">Brak pracowników dla „{text}”.</li>
@@ -123,8 +121,8 @@ export function EmployeeCombobox({
                   e.id === value && "bg-primary-soft",
                 )}
               >
-                <span className="block text-sm font-bold">{e.full_name}</span>
-                <span className="block text-xs font-medium text-muted-foreground">
+                <span className="block text-[13px] font-medium">{e.full_name}</span>
+                <span className="block text-xs text-muted-foreground">
                   {e.position} · {e.unit}
                 </span>
               </li>

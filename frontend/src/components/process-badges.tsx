@@ -1,7 +1,9 @@
+import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   STAGES,
   STATUS_LABELS,
+  TYPE_LABELS,
   type FormType,
   type ProcessStage,
   type ProcessStatus,
@@ -10,18 +12,14 @@ import {
 import { cn, daysUntil, formatDate } from "@/lib/utils";
 
 const STATUS_VARIANT = {
-  not_started: "outline",
+  not_started: "default",
   in_progress: "default",
-  completed: "default",
-  overdue: "danger",
+  completed: "accent",
+  overdue: "warning",
 } as const;
 
 export function StatusBadge({ status }: { status: ProcessStatus }) {
-  return (
-    <Badge size="md" variant={STATUS_VARIANT[status]}>
-      {STATUS_LABELS[status]}
-    </Badge>
-  );
+  return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>;
 }
 
 export function stageIndex(stage: ProcessStage): number {
@@ -33,66 +31,64 @@ export function stageLabel(stage: ProcessStage): string {
   return `${idx + 1}/${STAGES.length} ${STAGES[idx]?.label ?? stage}`;
 }
 
-/** Six-segment progress bar with the "3/6 Ocena zachowań" caption below it. */
-export function StageProgress({ stage, done }: { stage: ProcessStage; done?: boolean }) {
-  const reached = done ? STAGES.length : stageIndex(stage) + 1;
-  const idx = stageIndex(stage);
+/** "Pierwsza ocena · Arkusz A" / "Ocena okresowa · Arkusz C". */
+export function typeLabel(type: ProcessType, form: FormType | null): string {
+  const sheet = type === "first" ? "A" : form;
+  return sheet ? `${TYPE_LABELS[type]} · Arkusz ${sheet}` : TYPE_LABELS[type];
+}
+
+/** Six segments: finished steps solid, the current one light, the rest neutral. */
+export function StageSegments({ stage, done }: { stage: ProcessStage; done?: boolean }) {
+  const current = done ? STAGES.length : stageIndex(stage);
   return (
-    <div className="flex flex-col gap-2">
-      <div
-        className="flex gap-1"
-        role="img"
-        aria-label={`Etap ${reached} z ${STAGES.length}: ${STAGES[idx]?.label ?? stage}`}
-      >
-        {STAGES.map((s, i) => (
-          <span
-            key={s.id}
-            className={cn("h-1 w-5 rounded-[3px]", i < reached ? "bg-brand-gradient" : "bg-border")}
-          />
-        ))}
-      </div>
-      <p className="flex gap-1.5 text-[13px]" aria-hidden>
-        <span className="font-black text-primary">
-          {reached}/{STAGES.length}
-        </span>
-        <span>{STAGES[idx]?.label ?? stage}</span>
-      </p>
+    <div className="flex gap-1" aria-hidden>
+      {STAGES.map((s, i) => (
+        <span
+          key={s.id}
+          className={cn(
+            "h-1 w-8 rounded-[2px]",
+            i < current ? "bg-primary" : i === current ? "bg-primary-border" : "bg-muted",
+          )}
+        />
+      ))}
     </div>
   );
 }
 
-const URGENT_DAYS = 7;
-
-/** Deadline date with a short relative note ("za 30 dni", "3 dni po terminie"). */
-export function Deadline({ iso, done, stacked }: { iso?: string; done?: boolean; stacked?: boolean }) {
+export function relativeDeadline(iso?: string | null, done?: boolean): { text: string; overdue: boolean } | null {
   const days = daysUntil(iso);
-  let note: string | null = null;
-  let tone = "text-primary-bright";
-  if (done) {
-    note = "zakończona";
-    tone = "text-muted-foreground font-medium";
-  } else if (days != null) {
-    if (days < 0) {
-      note = `${Math.abs(days)} dni po terminie`;
-      tone = "text-destructive";
-    } else {
-      note = days === 0 ? "dziś" : `za ${days} dni`;
-      if (days <= URGENT_DAYS) tone = "text-destructive";
-    }
-  }
-  if (!stacked) {
-    return (
-      <span>
-        {formatDate(iso)}
-        {iso && note && !done ? <span className={cn("font-bold", tone)}> ({note})</span> : null}
-      </span>
-    );
-  }
+  if (done || days == null) return null;
+  if (days < 0) return { text: `${Math.abs(days)} dni po terminie`, overdue: true };
+  return { text: days === 0 ? "dziś" : `za ${days} dni`, overdue: false };
+}
+
+/** Inline deadline, e.g. in the wizard header: "21.12.2026 (za 30 dni)". */
+export function Deadline({ iso, done }: { iso?: string; done?: boolean }) {
+  const rel = relativeDeadline(iso, done);
   return (
-    <span className="flex flex-col gap-[3px]">
-      <span className="text-sm font-bold">{formatDate(iso)}</span>
-      {iso && note && <span className={cn("text-xs font-bold", tone)}>{note}</span>}
+    <span>
+      {formatDate(iso)}
+      {iso && rel && <span className={cn(rel.overdue && "text-warning")}> ({rel.text})</span>}
     </span>
+  );
+}
+
+/** Stacked deadline block with a label, clock icon and relative note. */
+export function DeadlineBlock({ iso, done }: { iso?: string; done?: boolean }) {
+  const rel = relativeDeadline(iso, done);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-faint-foreground">Termin</span>
+      <span className="flex items-center gap-1.5 text-[13px] font-medium">
+        <Clock aria-hidden absoluteStrokeWidth strokeWidth={1.6} className="size-3.5" />
+        {formatDate(iso)}
+      </span>
+      {rel && (
+        <span className={cn("text-xs", rel.overdue ? "font-medium text-warning" : "text-faint-foreground")}>
+          {rel.text}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -109,39 +105,23 @@ export function initials(name?: string | null): string {
 
 export function Avatar({
   name,
-  tone = "soft",
+  tone = "neutral",
   className,
 }: {
   name?: string | null;
-  tone?: "soft" | "solid" | "neutral";
+  tone?: "neutral" | "accent";
   className?: string;
 }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "flex size-[38px] shrink-0 items-center justify-center rounded-full text-[13px] font-black",
-        tone === "soft" && "bg-primary-soft text-primary",
-        tone === "solid" && "bg-primary text-primary-foreground",
-        tone === "neutral" && "bg-secondary text-foreground",
+        "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+        tone === "accent" ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground",
         className,
       )}
     >
       {initials(name)}
-    </span>
-  );
-}
-
-/** Small square tag with the sheet letter: A for the first assessment, B/C for periodic ones. */
-export function FormTag({ type, form }: { type: ProcessType; form: FormType | null }) {
-  const letter = type === "first" ? "A" : form;
-  if (!letter) return null;
-  return (
-    <span
-      className="inline-flex rounded-sm bg-primary-soft px-1.5 py-px text-[11px] font-black text-primary"
-      title={`Arkusz ${letter}`}
-    >
-      {letter}
     </span>
   );
 }
