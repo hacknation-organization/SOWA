@@ -18,6 +18,7 @@ log = logging.getLogger("app.rag")
 MAX_QUESTION_CHARS = 2000
 MAX_CONTEXT_CHUNKS = 8
 HIGH_COVERAGE = 0.6
+SOFT_MIN_COVERAGE = 0.35
 HIGH_COSINE_MARGIN = 0.08
 LLM_UNAVAILABLE_NOTE = "Model językowy jest niedostępny – poniżej najtrafniejsze fragmenty bazy wiedzy:"
 LLM_FAILED_NOTE = "Nie udało się wygenerować odpowiedzi – poniżej najtrafniejsze fragmenty bazy wiedzy:"
@@ -209,7 +210,11 @@ class RagService:
         hits: list[Hit] = self.retriever.search(query, k=self.settings.top_k, process=process, query_vec=qvec)
 
         enough, cov, cos = evidence_strength(hits, self.settings.min_coverage, self.settings.min_cosine)
-        if mode == "formal" and not enough:
+        # Borderline coverage (natural phrasing, words absent from the sources) goes to the LLM, which is
+        # instructed to answer only from the fragments and to return "no_info" otherwise. Without an LLM,
+        # or with clearly unrelated questions, refuse right away as before.
+        borderline = self.llm is not None and cov >= SOFT_MIN_COVERAGE
+        if mode == "formal" and not enough and not borderline:
             self._log(mode, "no_evidence", len(hits), t0)
             return _response(NO_INFO_ANSWER)
         if with_data and not hits and not ctx:
