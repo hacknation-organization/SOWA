@@ -211,3 +211,13 @@ def test_injection_detection_and_scrub():
     assert not looks_like_injection("Jak wygląda rozmowa wstępna?")
     s = scrub_context({"PESEL": "90010112345", "notes": "tel. 600 100 200, PESEL 90010112345"})
     assert "PESEL" not in s and "[telefon]" in s["notes"] and "[numer]" in s["notes"]
+
+
+@pytest.mark.parametrize("mode", ["interview", "plan"])
+def test_ai_proposals_never_fall_back_to_knowledge_base_excerpts(mode):
+    ctx = {"competencies": [{"name": "KOMUNIKACJA", "indicators": [{"name": "Formułowanie jasnych wypowiedzi pisemnych"}]}]}
+    question = "Zaproponuj pytania do rozmowy oceniającej"
+    for llm in (None, FakeLLM(error=LLMError("timeout")), FakeLLM({"status": "no_info", "answer": ""})):
+        res = run(make_service(llm).ask(question, mode, ctx))
+        assert res["confidence"] == "none" and res["citations"] == []
+        assert "fragmenty bazy wiedzy" not in res["answer"] and "Kompetencja:" not in res["answer"]

@@ -4,7 +4,8 @@ import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SOWA — System Oceny, Wsparcia i Analizy",
+  // Pages set a short name ("Nowa ocena") and the tab reads "Nowa ocena · SOWA".
+  title: { default: "SOWA — System Oceny, Wsparcia i Analizy", template: "%s · SOWA" },
   description: "Wsparcie przełożonych w ocenie pracowników służby cywilnej",
 };
 

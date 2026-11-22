@@ -22,6 +22,10 @@ SOFT_MIN_COVERAGE = 0.35
 HIGH_COSINE_MARGIN = 0.08
 LLM_UNAVAILABLE_NOTE = "Model językowy jest niedostępny – poniżej najtrafniejsze fragmenty bazy wiedzy:"
 LLM_FAILED_NOTE = "Nie udało się wygenerować odpowiedzi – poniżej najtrafniejsze fragmenty bazy wiedzy:"
+SUGGESTIONS_UNAVAILABLE = ("Propozycje przygotowuje model językowy, a żaden nie jest skonfigurowany "
+                           "(ustaw RAG_LLM w backend/.env).")
+SUGGESTIONS_FAILED = "Model językowy nie odpowiedział – nie udało się przygotować propozycji. Spróbuj ponownie."
+SUGGESTIONS_EMPTY = "Asystent nie przygotował propozycji. Spróbuj ponownie."
 
 _MARKER = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 _PAR_REF = re.compile(r"§\s*(\d+[a-z]?)")
@@ -226,8 +230,12 @@ class RagService:
             extra = (self._plan_extra(ctx, have) if mode == "plan" else self._interview_extra(ctx, have, question))
             chunks = (extra + chunks)[:MAX_CONTEXT_CHUNKS]
 
+        # Interview questions and development plans are AI proposals by definition: when the model cannot
+        # produce them, report the failure instead of passing raw knowledge-base excerpts off as proposals.
         if self.llm is None:
             self._log(mode, "extractive", len(chunks), t0)
+            if with_data:
+                return _response(SUGGESTIONS_UNAVAILABLE)
             return self._extractive(chunks, question, LLM_UNAVAILABLE_NOTE)
 
         system = build_system_prompt(mode)
@@ -237,6 +245,8 @@ class RagService:
         except (LLMError, ValueError) as exc:
             log.warning("Generacja nieudana: %s", type(exc).__name__)
             self._log(mode, "llm_error", len(chunks), t0)
+            if with_data:
+                return _response(SUGGESTIONS_FAILED)
             return self._extractive(chunks, question, LLM_FAILED_NOTE)
 
         status = str(out.get("status", "ok")).lower()
@@ -246,7 +256,7 @@ class RagService:
             return self._decision_response(process)
         if status == "no_info" or not answer or fold(answer).startswith(fold(NO_INFO_ANSWER)[:30]):
             self._log(mode, "no_info_llm", len(chunks), t0)
-            return _response(NO_INFO_ANSWER)
+            return _response(SUGGESTIONS_EMPTY if with_data else NO_INFO_ANSWER)
 
         text, cited = validate_citations(answer, chunks, out.get("used_markers"))
         if not cited:
