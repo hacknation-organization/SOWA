@@ -21,7 +21,7 @@ export default function NewAssessmentPage() {
   return (
     <Suspense
       fallback={
-        <LoadingRegion label="Wczytywanie formularza" className="px-10 py-8">
+        <LoadingRegion label="Wczytywanie formularza" className="page-x py-6 lg:py-8">
           <StepCardSkeleton />
         </LoadingRegion>
       }
@@ -85,8 +85,8 @@ function NewAssessmentForm() {
         title="Nowa ocena"
         description="Wybierz rodzaj oceny i pracownika — resztę przeprowadzimy krok po kroku."
       />
-      <div className="flex items-start gap-6 px-10 pb-12 pt-6">
-        <Card className="min-w-0 flex-1 p-7">
+      <div className="flex flex-col gap-6 page-x pb-12 pt-6 lg:flex-row lg:items-start">
+        <Card className="min-w-0 flex-1 p-5 sm:p-7">
           <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
             <fieldset className="flex flex-col gap-2.5">
               <legend className="mb-2.5 text-[13px] font-medium leading-[19px]">Rodzaj oceny</legend>
@@ -112,7 +112,7 @@ function NewAssessmentForm() {
                     />
                     <RadioDot checked={checked} className="mt-0.5" />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="flex items-center gap-2 font-semibold">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
                         {TYPE_LABELS[o.type]}
                         <Badge>{o.sheet}</Badge>
                       </span>
@@ -143,7 +143,7 @@ function NewAssessmentForm() {
 
             <div className="h-px bg-border" />
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
               <Button type="submit" disabled={busy}>
                 {busy ? "Tworzenie…" : "Rozpocznij ocenę"}
                 <ArrowRight {...ICON} />
@@ -155,7 +155,7 @@ function NewAssessmentForm() {
           </form>
         </Card>
 
-        <Card className="flex w-[340px] shrink-0 flex-col gap-4 p-6">
+        <Card className="flex w-full flex-col gap-4 p-5 sm:p-6 lg:w-[340px] lg:shrink-0">
           <h2 className="text-[15px] font-semibold leading-[22px]">Jak przebiega ocena</h2>
           <ol className="flex flex-col">
             {FLOW.map(([title, hint], i) => (

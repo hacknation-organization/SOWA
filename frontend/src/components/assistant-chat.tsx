@@ -180,7 +180,7 @@ export function AssistantChat({
           className="resize-none bg-transparent text-[13px] leading-[19px] outline-none placeholder:text-faint-foreground"
         />
         <div className="flex items-center justify-between gap-2">
-          <span id={`${inputId}-hint`} className="text-xs leading-4 text-faint-foreground">
+          <span id={`${inputId}-hint`} className="text-xs leading-4 text-faint-foreground max-sm:invisible">
             Enter — wyślij · Shift+Enter — nowa linia
           </span>
           <Button type="submit" size="icon-sm" disabled={busy || !question.trim()} aria-label="Wyślij pytanie">

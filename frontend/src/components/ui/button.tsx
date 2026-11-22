@@ -30,8 +30,9 @@ const buttonVariants = cva(
   },
 );
 
+// React 19 passes `ref` as a regular prop, so including it here is enough to forward it.
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends React.ComponentProps<"button">,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }

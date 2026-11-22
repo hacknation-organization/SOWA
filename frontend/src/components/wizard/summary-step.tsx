@@ -94,7 +94,7 @@ export function SummaryStep({ process, competencies, onProcess, goTo }: StepProp
           </Button>
         )}
         <span className="flex-1" />
-        <span id="summary-progress" className="text-xs text-faint-foreground">
+        <span id="summary-progress" className="text-xs text-faint-foreground max-sm:text-center">
           Zatwierdzono {data.length - missing.length} z {data.length}
         </span>
         <Button
@@ -119,7 +119,7 @@ function LevelScale({ suggested }: { suggested: LevelValue | null }) {
           <span className={cn("h-1 w-full rounded-[2px]", l === suggested ? "bg-primary" : "bg-muted")} />
           <span
             className={cn(
-              "whitespace-nowrap text-xs leading-4",
+              "text-center text-xs leading-4 @xl:whitespace-nowrap",
               l === suggested ? "font-medium text-primary" : "text-faint-foreground",
             )}
           >
@@ -176,7 +176,7 @@ function DecisionCard({
   return (
     <section
       aria-labelledby={`comp-${id}`}
-      className={cn("flex flex-col gap-4 rounded-xl border p-5", approved && "border-primary-border")}
+      className={cn("flex flex-col gap-4 rounded-xl border p-4 sm:p-5", approved && "border-primary-border")}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col">
@@ -198,7 +198,7 @@ function DecisionCard({
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border bg-subtle px-3.5 py-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[13px] leading-[19px]">
             <span className="text-muted-foreground">Sugerowany poziom: </span>
             <span className="font-medium">
@@ -239,7 +239,7 @@ function DecisionCard({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor={`level-${id}`}>Twoja decyzja</Label>
               <Select
@@ -275,7 +275,7 @@ function DecisionCard({
             </div>
           </div>
           {error && <Alert variant="danger">{error}</Alert>}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={save} disabled={busy || level === ""}>
               {busy ? "Zapisywanie…" : "Zatwierdź poziom"}
             </Button>

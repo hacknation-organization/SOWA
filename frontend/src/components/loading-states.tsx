@@ -17,8 +17,8 @@ export function BootScreen() {
 /** Mirrors a "Do dokończenia" card: avatar, name, step progress, deadline, action. */
 export function ActiveCardSkeleton() {
   return (
-    <Card className="flex items-center gap-8 px-6 py-5">
-      <div className="flex w-[300px] shrink-0 items-center gap-3">
+    <Card className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:gap-8 xl:px-6">
+      <div className="flex items-center gap-3 xl:w-[240px] xl:shrink-0 2xl:w-[300px]">
         <Skeleton className="size-10 rounded-full" />
         <div className="flex flex-col gap-2">
           <Skeleton className="h-3.5 w-32" />
@@ -28,13 +28,15 @@ export function ActiveCardSkeleton() {
       <div className="flex flex-1 flex-col gap-2">
         <Skeleton className="h-3 w-36" />
         <Skeleton className="h-3.5 w-48" />
-        <Skeleton className="h-1 w-[212px]" />
+        <Skeleton className="h-1 w-full max-w-[212px]" />
       </div>
-      <div className="flex w-[160px] flex-col gap-2">
-        <Skeleton className="h-3 w-12" />
-        <Skeleton className="h-3.5 w-24" />
+      <div className="flex items-end justify-between gap-3 xl:contents">
+        <div className="flex flex-col gap-2 xl:w-[140px] 2xl:w-[160px]">
+          <Skeleton className="h-3 w-12" />
+          <Skeleton className="h-3.5 w-24" />
+        </div>
+        <Skeleton className="h-[39px] w-40" />
       </div>
-      <Skeleton className="h-[39px] w-40" />
     </Card>
   );
 }
@@ -47,8 +49,8 @@ export function TableSkeleton({ rows = 3, columns = 3 }: { rows?: number; column
         <Skeleton className="h-2.5 w-24 bg-border/70" />
       </div>
       {Array.from({ length: rows }, (_, r) => (
-        <div key={r} className="flex items-center gap-6 border-b px-6 py-4 last:border-0">
-          <div className="flex w-[320px] shrink-0 items-center gap-3">
+        <div key={r} className="flex items-center gap-6 border-b px-4 py-4 last:border-0 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3 md:w-[320px] md:shrink-0">
             <Skeleton className="size-8 rounded-full" />
             <div className="flex flex-col gap-2">
               <Skeleton className="h-3 w-28" />
@@ -56,9 +58,9 @@ export function TableSkeleton({ rows = 3, columns = 3 }: { rows?: number; column
             </div>
           </div>
           {Array.from({ length: columns }, (_, c) => (
-            <Skeleton key={c} className="h-3 flex-1" style={{ maxWidth: 160 - c * 30 }} />
+            <Skeleton key={c} className="h-3 flex-1 max-md:hidden" style={{ maxWidth: 160 - c * 30 }} />
           ))}
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex gap-2 max-sm:hidden">
             <Skeleton className="size-9" />
             <Skeleton className="h-9 w-20" />
           </div>
@@ -71,12 +73,12 @@ export function TableSkeleton({ rows = 3, columns = 3 }: { rows?: number; column
 /** Wizard page while the assessment loads: header, stepper and the step card outline. */
 export function WizardSkeleton() {
   return (
-    <LoadingRegion label="Wczytywanie oceny" className="flex flex-col gap-6 px-8 pb-12 pt-8">
-      <div className="flex items-start justify-between">
+    <LoadingRegion label="Wczytywanie oceny" className="flex flex-col gap-5 page-x pb-12 pt-6 lg:gap-6 lg:px-8 lg:pt-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2.5">
           <Skeleton className="h-3 w-48" />
           <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-3 w-96" />
+          <Skeleton className="h-3 w-full max-w-96" />
         </div>
         <div className="flex items-center gap-3">
           <Skeleton className="h-5 w-20" />
@@ -87,7 +89,7 @@ export function WizardSkeleton() {
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="flex flex-1 items-center gap-2.5 last:flex-none">
             <Skeleton className="size-[22px] shrink-0 rounded-full" />
-            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-20 max-md:hidden" />
             {i < 5 && <div className="h-px flex-1 bg-border" />}
           </div>
         ))}
@@ -99,7 +101,7 @@ export function WizardSkeleton() {
 
 export function StepCardSkeleton() {
   return (
-    <Card className="flex flex-col gap-6 p-7">
+    <Card className="flex flex-col gap-6 p-5 sm:p-7">
       <div className="flex flex-col gap-2.5">
         <Skeleton className="h-6 w-52" />
         <Skeleton className="h-3.5 w-full max-w-xl" />
@@ -142,7 +144,7 @@ export function SummarySkeleton() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Skeleton className="h-[43px]" />
             <Skeleton className="h-[84px]" />
           </div>

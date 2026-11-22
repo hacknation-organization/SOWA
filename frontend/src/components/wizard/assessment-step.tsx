@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckDot } from "@/components/ui/choice";
-import { Label, LabelHint, Textarea } from "@/components/ui/form";
+import { Label, LabelHint, Select, Textarea } from "@/components/ui/form";
 import { api, type LevelValue, type Rating } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { StepActions } from "./step-card";
@@ -121,8 +121,36 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
   const groupName = `indicator-${item.indicator.id}`;
 
   return (
-    <div className="flex items-start gap-5">
-      <Card className="sticky top-6 w-[248px] shrink-0 px-4 pb-4 pt-5">
+    <div className="flex flex-col gap-4 @3xl:flex-row @3xl:items-start @3xl:gap-5">
+      {/* Narrow column: progress and a select to jump between indicators instead of the side list. */}
+      <Card className="flex flex-col gap-3 p-4 @3xl:hidden">
+        <p className="flex items-center justify-between text-[13px] leading-[19px]">
+          <span className="font-medium">Ocenione</span>
+          <span className="text-faint-foreground">
+            {answered} z {items.length}
+          </span>
+        </p>
+        <div className="h-1 overflow-hidden rounded-[2px] bg-muted" aria-hidden>
+          <div className="h-full rounded-[2px] bg-primary" style={{ width: `${(answered / items.length) * 100}%` }} />
+        </div>
+        <Select
+          aria-label="Przejdź do wskaźnika"
+          value={String(index)}
+          onChange={(e) => setIndex(Number(e.target.value))}
+        >
+          {items.map((it, i) => {
+            const r = ratings.get(it.indicator.id);
+            return (
+              <option key={it.indicator.id} value={i}>
+                {r ? "✓ " : ""}
+                {i + 1}. {it.competency.name} – {it.indicator.name}
+              </option>
+            );
+          })}
+        </Select>
+      </Card>
+
+      <Card className="sticky top-6 hidden w-[248px] shrink-0 px-4 pb-4 pt-5 @3xl:block">
         <nav aria-label="Wskaźniki do oceny" className="flex flex-col gap-1.5">
           <p className="flex items-center justify-between text-[13px] leading-[19px]" aria-live="polite">
             <span className="font-medium">Ocenione</span>
@@ -182,9 +210,9 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
         </nav>
       </Card>
 
-      <Card className="flex min-w-0 flex-1 flex-col gap-6 p-7">
+      <Card className="flex min-w-0 flex-1 flex-col gap-6 p-5 sm:p-7">
         <div className="flex flex-col gap-3">
-          <p className="flex items-center gap-2">
+          <p className="flex flex-wrap items-center gap-2">
             <Badge variant="accent">{item.competency.name}</Badge>
             <span className="text-xs text-faint-foreground">
               Wskaźnik {index + 1} z {items.length}
@@ -290,7 +318,10 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <p className="-mt-2 flex flex-wrap items-center gap-4" aria-label="Skróty klawiszowe (poza polem tekstowym)">
+        <p
+          className="-mt-2 hidden flex-wrap items-center gap-4 @3xl:flex"
+          aria-label="Skróty klawiszowe (poza polem tekstowym)"
+        >
           {SHORTCUTS.map(([key, label]) => (
             <span key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <kbd className="rounded-sm border border-border-strong bg-card px-1.5 py-px font-mono text-[11px] leading-4 text-foreground">
@@ -330,7 +361,7 @@ export function AssessmentStep({ process, competencies, onProcess, goTo }: StepP
           )}
         </StepActions>
         {isLast && answered < items.length && (
-          <p className="-mt-3 text-right text-xs text-faint-foreground">
+          <p className="-mt-3 text-xs text-faint-foreground sm:text-right">
             Nieocenione wskaźniki ({items.length - answered}) zostaną pominięte w wyliczeniu sugerowanego poziomu.
           </p>
         )}

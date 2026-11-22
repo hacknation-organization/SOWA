@@ -97,9 +97,9 @@ export default function DashboardPage() {
     .pop();
 
   return (
-    <div className="flex flex-col gap-8 px-10 pb-12 pt-8">
-      <header className="flex items-center justify-between gap-6">
-        <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-6 page-x pb-12 pt-6 lg:gap-8 lg:pt-8">
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
+        <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-display">
             Dzień dobry{firstName ? `, ${firstName}` : ""}
           </h1>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex h-[39px] w-[280px] items-center gap-2 rounded-md border bg-card px-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15">
+          <label className="flex h-[39px] min-w-0 flex-1 items-center gap-2 md:w-[280px] md:flex-none rounded-md border bg-card px-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15">
             <Search {...ICON} className="size-4 text-faint-foreground" />
             <span className="sr-only">Szukaj pracownika lub oceny</span>
             <input
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint-foreground"
             />
           </label>
-          <Button asChild>
+          <Button asChild className="shrink-0">
             <Link href={ROUTES.newAssessment}>Nowa ocena</Link>
           </Button>
         </div>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
             <ActiveCardSkeleton />
           </LoadingRegion>
         ) : active.length === 0 ? (
-          <Card className="flex items-center justify-between gap-4 px-6 py-5">
+          <Card className="flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-[13px] text-muted-foreground">
               {q ? "Żadna ocena w toku nie pasuje do wyszukiwania." : "Nie masz ocen w toku."}
             </p>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
       </section>
 
       <section aria-labelledby="done-heading" className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionTitle
             id="done-heading"
             title={shownYear ? `Zakończone w ${shownYear}` : "Zakończone"}
@@ -192,20 +192,25 @@ export default function DashboardPage() {
                 {q ? "Żadna zakończona ocena nie pasuje do wyszukiwania." : "Brak zakończonych ocen."}
               </p>
             ) : (
-              <Table aria-labelledby="done-heading" className="table-fixed">
-                <colgroup>
-                  <col className="w-[344px]" />
-                  <col className="w-[260px]" />
-                  <col className="w-[190px]" />
-                  <col className="w-[110px]" />
-                  <col />
-                </colgroup>
+              <>
+              <ul className="divide-y md:hidden" aria-labelledby="done-heading">
+                {doneShown.map((p) => (
+                  <DoneItem
+                    key={p.id}
+                    process={p}
+                    employee={employees.get(p.employee_id)}
+                    name={nameOf(p)}
+                    score={data?.scores.get(p.id)}
+                  />
+                ))}
+              </ul>
+              <Table aria-labelledby="done-heading" className="max-md:hidden">
                 <TableHeader>
                   <TableRow className="border-0 hover:bg-transparent">
                     <TableHead>Pracownik</TableHead>
                     <TableHead className="px-0">Rodzaj oceny</TableHead>
-                    <TableHead className="px-0">Zakończono</TableHead>
-                    <TableHead className="px-0">Wynik</TableHead>
+                    <TableHead className="whitespace-nowrap px-0 pl-4">Zakończono</TableHead>
+                    <TableHead className="px-0 pl-4">Wynik</TableHead>
                     <TableHead>
                       <span className="sr-only">Akcje</span>
                     </TableHead>
@@ -223,6 +228,7 @@ export default function DashboardPage() {
                   ))}
                 </TableBody>
               </Table>
+              </>
             )}
           </Card>
         )}
@@ -255,8 +261,8 @@ function ActiveCard({
 }) {
   const idx = stageIndex(p.stage);
   return (
-    <Card className="flex items-center gap-8 px-6 py-5">
-      <div className="flex w-[300px] shrink-0 items-center gap-3">
+    <Card className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:gap-8 xl:px-6">
+      <div className="flex min-w-0 items-center gap-3 xl:w-[240px] xl:shrink-0 2xl:w-[300px]">
         <Avatar name={name} className="size-10 text-[13px]" />
         <div className="min-w-0">
           <p className="truncate font-semibold">{name}</p>
@@ -272,17 +278,83 @@ function ActiveCard({
         </p>
         <StageSegments stage={p.stage} />
       </div>
-      <div className="w-[160px] shrink-0">
-        <DeadlineBlock iso={p.deadline} />
+      {/* Below 1280px deadline and action share a row; on desktop "contents" puts them into the card row. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 xl:contents">
+        <div className="xl:w-[140px] xl:shrink-0 2xl:w-[160px]">
+          <DeadlineBlock iso={p.deadline} />
+        </div>
+        <Button asChild variant={primary ? "default" : "outline"} className="max-sm:w-full">
+          <Link href={assessmentPath(p.id)}>
+            Kontynuuj ocenę
+            <span className="sr-only">: {name}</span>
+            <ArrowRight {...ICON} />
+          </Link>
+        </Button>
       </div>
-      <Button asChild variant={primary ? "default" : "outline"}>
-        <Link href={assessmentPath(p.id)}>
-          Kontynuuj ocenę
-          <span className="sr-only">: {name}</span>
-          <ArrowRight {...ICON} />
-        </Link>
-      </Button>
     </Card>
+  );
+}
+
+function PdfButton({ processId, name }: { processId: string; name: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      disabled={busy}
+      aria-label={`Pobierz PDF: ${name}`}
+      title="Pobierz PDF"
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await downloadProcessPdf(processId);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Download {...ICON} className="!size-[18px]" />
+    </Button>
+  );
+}
+
+/** Phone layout of a completed assessment: the table row as a compact card. */
+function DoneItem({
+  process: p,
+  employee,
+  name,
+  score,
+}: {
+  process: Process;
+  employee?: Employee;
+  name: string;
+  score?: number;
+}) {
+  return (
+    <li className="flex flex-col gap-3 p-4">
+      <div className="flex items-start gap-3">
+        <Avatar name={name} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{name}</p>
+          {employee?.position && (
+            <p className="truncate text-xs leading-4 text-faint-foreground">{employee.position}</p>
+          )}
+        </div>
+        <span className="shrink-0 font-medium">{score !== undefined ? `${score} pkt` : "—"}</span>
+      </div>
+      <p className="text-[13px] leading-[19px] text-muted-foreground">
+        {typeLabel(p.type, p.form)} · zakończono {formatDate(p.updated_at)}
+      </p>
+      <div className="flex items-center gap-2">
+        <Button asChild variant="outline" className="flex-1">
+          <Link href={assessmentPath(p.id)}>
+            Otwórz
+            <span className="sr-only"> ocenę: {name}</span>
+          </Link>
+        </Button>
+        <PdfButton processId={p.id} name={name} />
+      </div>
+    </li>
   );
 }
 
@@ -297,10 +369,9 @@ function DoneRow({
   name: string;
   score?: number;
 }) {
-  const [busy, setBusy] = useState(false);
   return (
     <TableRow>
-      <TableCell>
+      <TableCell className="min-w-52">
         <div className="flex items-center gap-3">
           <Avatar name={name} />
           <div className="min-w-0">
@@ -312,27 +383,11 @@ function DoneRow({
         </div>
       </TableCell>
       <TableCell className="px-0 text-muted-foreground">{typeLabel(p.type, p.form)}</TableCell>
-      <TableCell className="px-0 text-muted-foreground">{formatDate(p.updated_at)}</TableCell>
-      <TableCell className="px-0 font-medium">{score !== undefined ? `${score} pkt` : "—"}</TableCell>
-      <TableCell>
+      <TableCell className="whitespace-nowrap px-0 pl-4 text-muted-foreground">{formatDate(p.updated_at)}</TableCell>
+      <TableCell className="whitespace-nowrap px-0 pl-4 font-medium">{score !== undefined ? `${score} pkt` : "—"}</TableCell>
+      <TableCell className="w-px">
         <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={busy}
-            aria-label={`Pobierz PDF: ${name}`}
-            title="Pobierz PDF"
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await downloadProcessPdf(p.id);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <Download {...ICON} className="!size-[18px]" />
-          </Button>
+          <PdfButton processId={p.id} name={name} />
           <Button asChild variant="outline">
             <Link href={assessmentPath(p.id)}>
               Otwórz

@@ -137,17 +137,63 @@
   }
 }
 
-.kk-desktop-only {
-  display: contents;
-}
-.kk-narrow-notice {
-  display: none;
-}
-@media (max-width: 1023.98px) {
-  .kk-desktop-only {
-    display: none;
+/* Horizontal page padding shared by every screen: 16px on phones, 24px on tablets, 40px on desktop. */
+@utility page-x {
+  padding-inline: 1rem;
+  @media (width >= 48rem) {
+    padding-inline: 1.5rem;
   }
-  .kk-narrow-notice {
-    display: flex;
+  @media (width >= 64rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* Height of the mobile top bar; the desktop layout has no top bar. */
+:root {
+  --kk-topbar-height: 3.5rem;
+}
+
+/* Slide-in panels (navigation drawer, assistant sheet). */
+@keyframes kk-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes kk-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes kk-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.kk-slide-in-left {
+  animation: kk-slide-in-left 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+/* Only while the panel is an overlay; from 1280px the assistant is a static side column. */
+@media (width < 80rem) {
+  .kk-slide-in-right {
+    animation: kk-slide-in-right 220ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+}
+.kk-fade-in {
+  animation: kk-fade-in 180ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kk-slide-in-left,
+  .kk-slide-in-right,
+  .kk-fade-in {
+    animation: none;
+  }
+}
+
+/* iOS Safari zooms into fields with text under 16px; keep 16px on touch-sized screens only. */
+@media (width < 40rem) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }

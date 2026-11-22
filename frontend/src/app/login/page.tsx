@@ -39,14 +39,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main id="main" className="flex min-h-screen items-center justify-center p-8">
+    <main id="main" className="flex min-h-dvh items-center justify-center px-4 py-8 sm:p-8">
       <div className="w-full max-w-3xl">
-        <div className="mb-8 flex flex-col gap-3">
+        <div className="mb-6 flex flex-col gap-3 sm:mb-8">
           <SowaBrand size="login" as="h1" />
           <p className="text-muted-foreground">Pierwsza ocena i ocena okresowa w służbie cywilnej.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Wejdź jako użytkownik demonstracyjny</CardTitle>
