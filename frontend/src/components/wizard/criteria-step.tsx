@@ -89,7 +89,7 @@ export function CriteriaStep({ process, competencies, onProcess, goTo }: StepPro
           : "Wybierz kompetencje, które będą podstawą pierwszej oceny — najlepiej te powiązane z zadaniami z OSP."
       }
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="text-[13px] leading-[19px]" aria-live="polite">
           <span className="font-medium text-primary">Wybrano {selected.length}</span>{" "}
           <span className="text-muted-foreground">
@@ -97,7 +97,7 @@ export function CriteriaStep({ process, competencies, onProcess, goTo }: StepPro
             {periodic && ` · dodatkowe: ${additional.length} z ${MAX_ADDITIONAL_CRITERIA}`}
           </span>
         </p>
-        <label className="flex h-[39px] w-60 items-center gap-2 rounded-md border bg-card px-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15">
+        <label className="flex h-[39px] w-full shrink-0 items-center gap-2 sm:w-60 rounded-md border bg-card px-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15">
           <Search {...ICON} className="size-4 text-faint-foreground" />
           <span className="sr-only">Filtruj kompetencje</span>
           <input

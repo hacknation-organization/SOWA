@@ -19,8 +19,8 @@ export function Stepper({
   const isDone = (i: number) => i !== currentIdx && (i < reachedIdx || (!!completed && i <= reachedIdx));
   return (
     // Container query: when the column is too narrow for all labels, only the current step keeps its label.
-    <nav aria-label="Kroki oceny" className="@container rounded-xl border bg-card px-5 py-3.5">
-      <ol className="flex items-center gap-2.5">
+    <nav aria-label="Kroki oceny" className="@container rounded-xl border bg-card px-3.5 py-3 sm:px-5 sm:py-3.5">
+      <ol className="flex items-center gap-1.5 @[30rem]:gap-2.5">
         {STAGES.map((s, i) => {
           const isCurrent = i === currentIdx;
           const available = i <= reachedIdx;
@@ -44,7 +44,8 @@ export function Stepper({
                   title={s.label}
                   onClick={() => onSelect(s.id)}
                   className={cn(
-                    "flex items-center whitespace-nowrap rounded-md text-[13px] leading-[19px] transition-colors disabled:cursor-not-allowed",
+                    // The pseudo-element enlarges the touch target around the small step circle.
+                    "relative flex items-center whitespace-nowrap rounded-md text-[13px] leading-[19px] transition-colors after:absolute after:-inset-2 after:content-[''] disabled:cursor-not-allowed",
                     available && !isCurrent && "hover:text-foreground",
                   )}
                 >
@@ -69,9 +70,11 @@ export function Stepper({
                       done && "text-muted-foreground",
                       !done && !isCurrent && "text-faint-foreground",
                       !isCurrent && "@max-[46rem]:grid-cols-[0fr] @max-[46rem]:opacity-0",
+                      // Phones: circles only; the current step is named in the caption below.
+                      "@max-[30rem]:grid-cols-[0fr] @max-[30rem]:opacity-0",
                     )}
                   >
-                    <span className="overflow-hidden">
+                    <span className="relative overflow-hidden">
                       <span className="block pl-2">
                         {s.label}
                         {done && <span className="sr-only"> (gotowe)</span>}
@@ -84,6 +87,12 @@ export function Stepper({
           );
         })}
       </ol>
+      <p aria-hidden className="mt-2.5 hidden text-[13px] leading-[19px] @max-[30rem]:block">
+        <span className="text-faint-foreground">
+          Krok {currentIdx + 1} z {STAGES.length} ·{" "}
+        </span>
+        <span className="font-medium">{STAGES[currentIdx]?.label}</span>
+      </p>
     </nav>
   );
 }

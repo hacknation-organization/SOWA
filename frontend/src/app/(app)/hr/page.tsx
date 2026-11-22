@@ -83,8 +83,8 @@ export default function HrPage() {
         title="Monitoring ocen"
         description="Statusy procesów oceny, terminy i przypomnienia dla przełożonych."
       />
-      <div className="flex flex-col gap-6 p-8">
-        <div className="grid grid-cols-3 gap-4">
+      <div className="flex flex-col gap-6 page-x pb-12 pt-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           <Stat label="Po terminie" value={counts.overdue} tone="danger" />
           <Stat label={`Termin w ciągu ${DEADLINE_SOON_DAYS} dni`} value={counts.soon} tone="warning" />
           <Stat label="Zakończone" value={counts.completed} />
@@ -92,7 +92,7 @@ export default function HrPage() {
 
         <form
           aria-label="Filtry"
-          className="grid grid-cols-[repeat(3,minmax(0,16rem))_auto] items-end gap-4"
+          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,16rem))_auto]"
           onSubmit={(e) => e.preventDefault()}
         >
           <div className="flex flex-col gap-2">
@@ -131,13 +131,14 @@ export default function HrPage() {
           <Button
             type="button"
             variant="ghost"
+            className="justify-self-start"
             onClick={() => setFilters(EMPTY_FILTERS)}
           >
             Wyczyść filtry
           </Button>
         </form>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={() => remind(selected)} disabled={selected.length === 0}>
             Wyślij przypomnienie ({selected.length})
           </Button>
@@ -148,9 +149,82 @@ export default function HrPage() {
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <Card>
+        <Card className="overflow-hidden xl:hidden">
+          {loading && !data ? (
+            <ul aria-hidden className="divide-y">
+              {Array.from({ length: 3 }, (_, i) => (
+                <li key={i} className="flex flex-col gap-2.5 p-4">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-full max-w-64" />
+                  <Skeleton className="h-3 w-32" />
+                </li>
+              ))}
+            </ul>
+          ) : processes.length === 0 ? (
+            <p className="p-4 text-[13px] text-muted-foreground">Brak procesów spełniających kryteria.</p>
+          ) : (
+            <>
+              {remindable.length > 0 && (
+                <label className="flex cursor-pointer items-center gap-3 border-b bg-subtle px-4 py-2.5 text-[13px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4"
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? [] : remindable)}
+                  />
+                  Zaznacz wszystkie otwarte ({remindable.length})
+                </label>
+              )}
+              <ul className="divide-y" aria-label="Procesy oceny posortowane według terminu">
+                {processes.map((p) => {
+                  const done = p.status === "completed";
+                  return (
+                    <li key={p.id} className="flex items-start gap-3 p-4">
+                      <span className="flex size-5 shrink-0 items-center justify-center pt-0.5">
+                        {!done && (
+                          <input
+                            type="checkbox"
+                            className="size-4"
+                            aria-label={`Zaznacz: ${p.employee_name}`}
+                            checked={selected.includes(p.id)}
+                            onChange={() =>
+                              setSelected((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]))
+                            }
+                          />
+                        )}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <p className="font-medium">{p.employee_name}</p>
+                          <StatusBadge status={p.status} />
+                        </div>
+                        <p className="text-[13px] leading-[19px] text-muted-foreground">{p.unit}</p>
+                        <p className="text-[13px] leading-[19px]">
+                          {TYPE_LABELS[p.type]}
+                          {p.form ? ` (${p.form})` : ""} · {stageLabel(p.stage)}
+                        </p>
+                        <p className="text-[13px] leading-[19px] text-muted-foreground">
+                          Termin: <Deadline iso={p.deadline} done={done} />
+                          {p.reminder_sent_at && <> · przypomnienie {formatDate(p.reminder_sent_at)}</>}
+                        </p>
+                        {!done && (
+                          <Button size="sm" variant="outline" className="mt-1 self-start" onClick={() => remind([p.id])}>
+                            Przypomnij
+                            <span className="sr-only"> w sprawie: {p.employee_name}</span>
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </Card>
+
+        <Card className="max-xl:hidden">
           <CardContent className="p-0">
-            <Table>
+            <Table className="[&_td]:px-4 [&_th]:px-4">
               <TableCaption className="sr-only">Procesy oceny posortowane według terminu</TableCaption>
               <TableHeader>
                 <TableRow>
@@ -163,12 +237,12 @@ export default function HrPage() {
                     />
                   </TableHead>
                   <TableHead>Pracownik</TableHead>
-                  <TableHead>Komórka</TableHead>
+                  <TableHead className="max-2xl:hidden">Komórka</TableHead>
                   <TableHead>Rodzaj</TableHead>
                   <TableHead>Etap</TableHead>
                   <TableHead>Termin</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Ostatnie przypomnienie</TableHead>
+                  <TableHead className="max-2xl:hidden">Ostatnie przypomnienie</TableHead>
                   <TableHead>
                     <span className="sr-only">Akcje</span>
                   </TableHead>
@@ -179,7 +253,7 @@ export default function HrPage() {
                   Array.from({ length: 4 }, (_, i) => (
                     <TableRow key={i} aria-hidden className="hover:bg-transparent">
                       {Array.from({ length: 9 }, (_, c) => (
-                        <TableCell key={c}>
+                        <TableCell key={c} className={c === 2 || c === 7 ? "max-2xl:hidden" : undefined}>
                           <Skeleton className={c === 0 ? "size-4" : "h-3 w-full max-w-28"} />
                         </TableCell>
                       ))}
@@ -211,19 +285,21 @@ export default function HrPage() {
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{p.employee_name}</TableCell>
-                        <TableCell className="max-w-56 text-muted-foreground">{p.unit}</TableCell>
+                        <TableCell className="max-w-56 text-muted-foreground max-2xl:hidden">{p.unit}</TableCell>
                         <TableCell>
                           {TYPE_LABELS[p.type]}
                           {p.form ? ` (${p.form})` : ""}
                         </TableCell>
                         <TableCell>{stageLabel(p.stage)}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Deadline iso={p.deadline} done={done} />
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={p.status} />
                         </TableCell>
-                        <TableCell>{p.reminder_sent_at ? formatDate(p.reminder_sent_at) : "—"}</TableCell>
+                        <TableCell className="max-2xl:hidden">
+                          {p.reminder_sent_at ? formatDate(p.reminder_sent_at) : "—"}
+                        </TableCell>
                         <TableCell>
                           {!done && (
                             <Button size="sm" variant="outline" onClick={() => remind([p.id])}>
@@ -248,11 +324,9 @@ export default function HrPage() {
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "danger" | "warning" }) {
   const color = tone ? TONE_CLASS[tone] : "";
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className={`text-2xl font-semibold ${color}`}>{value}</p>
-      </CardContent>
+    <Card className="flex items-center justify-between gap-3 px-5 py-4 sm:flex-col sm:items-start sm:gap-1">
+      <p className="text-[13px] leading-[19px] text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-semibold leading-8 ${color}`}>{value}</p>
     </Card>
   );
 }

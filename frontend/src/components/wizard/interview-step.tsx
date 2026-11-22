@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/form";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { STEP_ACTIONS_ROW } from "./step-card";
 import type { StepProps } from "./types";
 
 const PLAN_REQUEST = "Zaproponuj plan rozwoju pracownika na podstawie wyników oceny.";
@@ -111,7 +113,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
   return (
     // Two columns share the height left below the header and stepper, so the step fits the screen.
     <div className="grid grid-cols-1 gap-5 @3xl:h-[max(28rem,calc(100dvh-17.5rem))] @3xl:grid-cols-2">
-      <Card className="flex h-[28rem] min-h-0 flex-col @3xl:h-full">
+      <Card className="flex min-h-0 flex-col @3xl:h-full">
         <CardHeader>
           <CardTitle>{showAi ? "Zaproponowane pytania" : "Twoje pytania"}</CardTitle>
           <p className="text-[13px] leading-[19px] text-muted-foreground">
@@ -131,7 +133,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           </div>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto max-@3xl:max-h-[24rem]">
             {showAi && questionsBusy && !questions.length && (
               <LoadingRegion label="Przygotowuję pytania" className="mb-3">
                 <ListSkeleton rows={5} />
@@ -194,7 +196,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
         </CardContent>
       </Card>
 
-      <Card className="flex min-h-0 flex-col gap-4 p-6 @3xl:h-full">
+      <Card className="flex min-h-0 flex-col gap-4 p-5 sm:p-6 @3xl:h-full">
         <div className="flex min-h-0 flex-[2] flex-col gap-2">
           <Label htmlFor="notes">Notatki z rozmowy</Label>
           <Textarea
@@ -207,7 +209,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           />
         </div>
         <div className="flex min-h-0 flex-[3] flex-col gap-2">
-          <div className="flex items-end justify-between gap-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
             <Label htmlFor="plan">Plan rozwoju</Label>
             <Button size="sm" variant="outline" onClick={suggestPlan} disabled={planBusy}>
               {planBusy ? "Przygotowuję plan…" : "Zaproponuj plan rozwoju"}
@@ -223,7 +225,7 @@ export function InterviewStep({ process, onProcess, goTo }: StepProps) {
           />
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
-        <div className="flex flex-wrap items-center gap-2.5 border-t pt-4">
+        <div className={cn(STEP_ACTIONS_ROW, "border-t pt-4")}>
           <Button variant="outline" onClick={() => goTo("summary")}>
             Wstecz
           </Button>

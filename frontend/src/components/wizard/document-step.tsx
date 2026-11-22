@@ -12,6 +12,7 @@ import { LEVEL_POINTS } from "@/lib/domain";
 import { downloadProcessPdf } from "@/lib/download";
 import { ROUTES } from "@/lib/routes";
 import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 import { StepActions, StepCard } from "./step-card";
 import type { StepProps } from "./types";
 
@@ -23,7 +24,9 @@ const SHORT_LEVEL: Record<number, string> = {
   5: "Znacznie powyżej",
 };
 
-const COLUMNS = "grid grid-cols-[150px_120px_190px_minmax(0,1fr)] gap-3 px-[18px]";
+// One row per competency on wide columns; stacked label/value pairs in a narrow column.
+const COLUMNS =
+  "grid grid-cols-1 gap-1.5 px-4 @2xl:grid-cols-[150px_120px_190px_minmax(0,1fr)] @2xl:gap-3 @2xl:px-[18px]";
 
 function planItems(plan?: string): string[] {
   return (plan ?? "")
@@ -69,7 +72,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
       <div className="overflow-hidden rounded-xl border" role="table" aria-label="Oceny cząstkowe">
         <div
           role="row"
-          className={`${COLUMNS} border-b bg-subtle py-2.5 text-[11px] font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground`}
+          className={`${COLUMNS} hidden border-b bg-subtle py-2.5 text-[11px] @2xl:grid font-medium uppercase leading-4 tracking-[0.6px] text-faint-foreground`}
         >
           <span role="columnheader">Kompetencja</span>
           <span role="columnheader">Sugerowany</span>
@@ -84,6 +87,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
                 {competencies.find((c) => c.id === s.competency_id)?.name}
               </span>
               <span role="cell" className="text-muted-foreground">
+                <span className="@2xl:hidden">Sugerowany: </span>
                 {s.suggested_level ? SHORT_LEVEL[s.suggested_level] : "—"}
               </span>
               <span role="cell" className="flex flex-col items-start gap-1.5">
@@ -99,13 +103,14 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
                   <span className="text-muted-foreground">—</span>
                 )}
               </span>
-              <span role="cell" className="text-muted-foreground">
+              <span role="cell" className={cn("text-muted-foreground", !s.justification && "max-@2xl:hidden")}>
+                <span className="@2xl:hidden">Uzasadnienie: </span>
                 {s.justification || "—"}
               </span>
             </div>
           );
         })}
-        <div role="row" className="flex items-center justify-between bg-subtle px-[18px] py-3.5">
+        <div role="row" className="flex items-center justify-between bg-subtle px-4 py-3.5 @2xl:px-[18px]">
           <span role="cell" className="text-[13px] font-medium">
             Suma punktów
           </span>
@@ -129,7 +134,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-3.5 rounded-lg border bg-subtle p-3.5">
+      <div className="flex flex-wrap items-center gap-3.5 rounded-lg border bg-subtle p-3.5">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
           <FileText {...ICON} className="size-5" />
         </span>
@@ -137,7 +142,7 @@ export function DocumentStep({ process, competencies, goTo }: StepProps) {
           <p className="truncate font-medium">{filename}</p>
           <p className="text-xs leading-4 text-faint-foreground">Gotowy do podpisu</p>
         </div>
-        <Button onClick={download} disabled={busy}>
+        <Button onClick={download} disabled={busy} className="max-sm:w-full">
           <Download {...ICON} />
           {busy ? "Generowanie…" : "Pobierz PDF"}
         </Button>
