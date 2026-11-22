@@ -1,0 +1,8 @@
+# Netlify reads this file from the base directory set in the UI ("frontend"),
+# so paths here are relative to frontend/.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
