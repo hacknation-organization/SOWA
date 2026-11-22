@@ -9,6 +9,7 @@ from app.rag.guards import (DECISION_REFUSAL, NO_INFO_ANSWER, is_decision_reques
 from app.rag.llm import LLMError
 from app.rag.retrieval import Retriever
 from app.rag.service import RagService, validate_citations
+from app.rag.textutil import tokenize
 
 
 def _chunk(cid, source_id, path, text, applies_to="okresowa", doc_type="rozporzadzenie", page=1):
@@ -47,7 +48,7 @@ class FakeLLM:
 
 
 def make_service(llm=None, **overrides):
-    s = dataclasses.replace(RagSettings.from_env(), min_coverage=0.5, top_k=4, **overrides)
+    s = dataclasses.replace(RagSettings.from_env(), **{"min_coverage": 0.5, "top_k": 4, **overrides})
     return RagService(Retriever(CHUNKS), llm, None, s)
 
 
@@ -102,6 +103,21 @@ def test_nonexistent_paragraph_refused():
     res = run(make_service(llm).ask("Co stanowi § 25 rozporządzenia w sprawie ocen okresowych?", "formal"))
     assert res["answer"].startswith(NO_INFO_ANSWER) and "§ 25" in res["answer"]
     assert llm.calls == []
+
+
+def test_borderline_coverage_is_left_to_the_llm():
+    question = "Ile kryteriów dodatkowych może wybrać oceniający kierownik zespołu?"  # coverage ~0.50
+    llm = FakeLLM({"status": "ok", "answer": "Nie więcej niż 3 kryteria dodatkowe [1].", "used_markers": [1]})
+    res = run(make_service(llm, min_coverage=0.55).ask(question, "formal"))
+    assert llm.calls and "3 kryteria" in res["answer"]
+    without_llm = run(make_service(None, min_coverage=0.55).ask(question, "formal"))
+    assert without_llm["answer"] == NO_INFO_ANSWER
+
+
+def test_sheet_letter_is_kept_for_retrieval():
+    assert "ark_c" in tokenize("Jakie są kryteria obowiązkowe w arkuszu C?")
+    assert "ark_b" in tokenize("[Arkusz oceny okresowej B | Część I]")
+    assert "podaj" not in tokenize("Podaj kryteria obowiązkowe")
 
 
 def test_decision_request_refused_without_llm_call():

@@ -16,7 +16,15 @@ _STOPWORDS = {
     "była", "były", "danego", "danej", "którym", "której", "których",
     "mogę", "mogą", "musi", "muszę", "wtedy", "itp", "np",
     "jakimi", "sposób", "chodzi", "chcę", "chciałbym", "chciałabym", "powiedz", "wyjaśnij", "opisz",
+    # Instruction and comparison words: they say what to do with the answer, not what it is about,
+    # and they never occur in the sources, so they would only drag the evidence coverage down.
+    "podaj", "podać", "wymień", "wymienić", "wypisz", "wskaż", "wskazać", "przedstaw", "omów",
+    "streść", "porównaj", "różni", "różnią", "różnica", "różnice", "różnicy", "wszystkie", "lista", "listę",
 }
+
+# "arkusz C", "arkuszu B", "ARKUSZ A", "Arkusz oceny okresowej C" -> a dedicated sheet token,
+# because single letters are otherwise dropped and every sheet would look the same.
+_SHEET = re.compile(r"\barkusz\w*(?:\s+oceny\s+okresowej)?\s+([abc])\b")
 
 _PL_FOLD = str.maketrans("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ", "acelnoszzACELNOSZZ")
 _STEM_LEN = 6
@@ -52,6 +60,7 @@ def tokenize(text: str) -> list[str]:
         if len(token) > _SHORT_STEM + 1:
             tokens.append("~" + token[:_SHORT_STEM])
     tokens.extend(_legal_tokens(text))
+    tokens.extend(f"ark_{letter}" for letter in _SHEET.findall(fold(text)))
     return tokens
 
 
