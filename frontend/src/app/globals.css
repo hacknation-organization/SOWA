@@ -2,6 +2,11 @@
 @import "../styles/tokens.css";
 
 :root {
+  /* Self-hosted font families, loaded in app/fonts.ts. */
+  --font-kk-sans: "IBM Plex Sans Variable";
+  --font-kk-mono: "IBM Plex Mono";
+  --font-kk-brand: "Montserrat Variable";
+
   --background: var(--kk-color-bg);
   --foreground: var(--kk-color-text);
   --card: var(--kk-color-surface);

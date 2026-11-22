@@ -1,23 +1,8 @@
-import { IBM_Plex_Mono, IBM_Plex_Sans, Montserrat } from "next/font/google";
-
-export const fontSans = IBM_Plex_Sans({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-  variable: "--font-kk-sans",
-  display: "swap",
-});
-
-export const fontMono = IBM_Plex_Mono({
-  subsets: ["latin", "latin-ext"],
-  weight: ["500"],
-  variable: "--font-kk-mono",
-  display: "swap",
-});
-
+// Fonts are self-hosted from Fontsource packages instead of next/font/google, so the build
+// never downloads from Google Fonts (that download breaks builds on Netlify).
+// Each stylesheet declares all subsets with unicode-range; browsers fetch only what a page uses.
+// Font family names are mapped to --font-kk-* variables in globals.css.
+import "@fontsource-variable/ibm-plex-sans";
+import "@fontsource/ibm-plex-mono/500.css";
 // Brand typeface: the "SOWA" wordmark (700) and page titles (600).
-export const fontBrand = Montserrat({
-  subsets: ["latin", "latin-ext"],
-  weight: ["600", "700"],
-  variable: "--font-kk-brand",
-  display: "swap",
-});
+import "@fontsource-variable/montserrat";

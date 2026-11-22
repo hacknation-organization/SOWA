@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fontBrand, fontMono, fontSans } from "./fonts";
+import "./fonts";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className={`${fontSans.variable} ${fontMono.variable} ${fontBrand.variable}`}>
+    <html lang="pl">
       <body className="antialiased">
         <a
           href="#main"
